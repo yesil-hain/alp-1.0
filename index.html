@@ -19,9 +19,14 @@
       measurementId: "G-TZ9LS0T088"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    window._fb = { db, ref, set, get, update, onValue, off, onDisconnect, remove };
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      window._fb = { db, ref, set, get, update, onValue, off, onDisconnect, remove };
+    } catch (e) {
+      console.error("Firebase init error:", e);
+      window._fbError = e;
+    }
   </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', sans-serif; }
@@ -29,10 +34,15 @@
     h1 { margin-bottom: 8px; font-size: 22px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); text-align: center; }
 
     .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; max-width: 980px; width: 100%; }
-    #status { font-weight: bold; font-size: 16px; color: #f39c12; white-space: nowrap; }
+    #status { font-weight: bold; font-size: 15.5px; color: #f39c12; white-space: nowrap; }
     #online-badge { display: none; font-size: 12px; font-weight: bold; color: #2ecc71; background: #1a252f; padding: 5px 10px; border-radius: 4px; border: 1px solid #27ae60; white-space: nowrap; }
+    #turn-hint-banner { display: none; font-size: 12.5px; font-weight: bold; color: #1a252f; background: #2ecc71; padding: 5px 10px; border-radius: 4px; box-shadow: 0 0 10px rgba(46, 204, 113, 0.6); }
     #check-alert { color: #e74c3c; font-weight: bold; font-size: 13.5px; display: none; animation: blink 1s infinite; }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes pulseFinish {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.85); }
+      50% { transform: scale(1.06); box-shadow: 0 0 14px 3px rgba(46, 204, 113, 0.9); }
+    }
 
     .pass-info { font-size: 12px; color: #bdc3c7; background: #1a252f; padding: 5px 10px; border-radius: 4px; border: 1px solid #34495e; white-space: nowrap; }
 
@@ -47,6 +57,7 @@
     .btn-finish { background: #27ae60; color: white; }
     .btn-finish:hover { background: #2ecc71; }
     .btn-finish:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.5; }
+    .btn-finish.ready-pulse { background: #2ecc71; color: #111; animation: pulseFinish 1.2s infinite; }
     .btn-draw { background: #d35400; color: white; }
     .btn-draw:hover { background: #e67e22; }
     .btn-draw:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.5; }
@@ -72,14 +83,14 @@
     .game-container {
       direction: ltr;
       display: flex; flex-direction: column; align-items: center;
-      background: #34495e; padding: 20px 75px; border-radius: 12px;
+      background: #34495e; padding: 20px 102px; border-radius: 12px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; margin-top: 4px;
     }
     .main-layout { display: flex; flex-direction: column; align-items: center; position: relative; }
     .board-container-outer { display: flex; flex-direction: column; align-items: flex-end; }
     .board-with-left-coords { display: flex; flex-direction: row; align-items: flex-start; }
 
-    .left-coords { display: flex; flex-direction: column; justify-content: space-around; height: 480px; padding-right: 10px; font-weight: bold; color: #f1c40f; font-size: 15px; }
+    .left-coords { display: flex; flex-direction: column; justify-content: space-around; height: 480px; padding-right: 10px; font-weight: bold; color: #f1c40f; font-size: 15px; width: 26px; text-align: center; }
     .left-coords span { height: 60px; display: flex; align-items: center; justify-content: center; }
     .bottom-coords { display: flex; flex-direction: row; justify-content: space-around; width: 420px; padding-top: 10px; font-weight: bold; color: #f1c40f; font-size: 15px; }
     .bottom-coords span { width: 60px; text-align: center; }
@@ -116,8 +127,13 @@
       font-size: 32px; font-weight: bold; z-index: 10; user-select: none;
       box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: top 0.3s ease;
     }
-    .golden-black { left: -68px; }
-    .golden-white { right: -68px; }
+    .golden-square-attached.empty-golden::after {
+      content: '★';
+      font-size: 18px;
+      color: rgba(26, 37, 47, 0.35);
+    }
+    .golden-black { left: -94px; }
+    .golden-white { right: -72px; }
 
     .piece-white { color: #ffffff !important; text-shadow: 0 0 4px #000, 0 0 2px #000; }
     .piece-black { color: #111111 !important; text-shadow: 0 0 4px #fff, 0 0 2px #fff; }
@@ -194,16 +210,16 @@
     .stat-row span { color: #bdc3c7; flex-shrink: 0; }
     .stat-row b { color: #fff; text-align: end; word-break: break-word; }
 
-    @media (max-width: 620px) {
-      .game-container { padding: 14px 52px; }
+    @media (max-width: 640px) {
+      .game-container { padding: 14px 72px; }
       .cell { width: 44px; height: 44px; font-size: 24px; }
-      .left-coords { height: 352px; }
+      .left-coords { height: 352px; width: 22px; padding-right: 6px; }
       .left-coords span { height: 44px; }
       .bottom-coords { width: 308px; }
       .bottom-coords span { width: 44px; }
       .golden-square-attached { width: 44px; height: 44px; font-size: 24px; }
-      .golden-black { left: -48px; }
-      .golden-white { right: -48px; }
+      .golden-black { left: -68px; }
+      .golden-white { right: -50px; }
     }
   </style>
 </head>
@@ -214,6 +230,7 @@
   <div class="status-bar">
     <div id="status">Turn: WHITE</div>
     <div id="online-badge">🌐 Online</div>
+    <div id="turn-hint-banner">✅ Click End Turn!</div>
     <div id="check-alert">⚠️ CENTER IN CHECK!</div>
     <div class="pass-info" id="pass-info">Passes - W: 0/3 | B: 0/3</div>
 
@@ -247,8 +264,8 @@
           <div class="board-wrapper" id="board-container">
             <svg id="portal-svg"></svg>
             <div id="board"></div>
-            <div class="golden-square-attached golden-black" id="golden-black-box"></div>
-            <div class="golden-square-attached golden-white" id="golden-white-box"></div>
+            <div class="golden-square-attached golden-black empty-golden" id="golden-black-box"></div>
+            <div class="golden-square-attached golden-white empty-golden" id="golden-white-box"></div>
           </div>
           <div class="bottom-coords" id="bottom-coords"></div>
         </div>
@@ -428,6 +445,7 @@
         lose() { playTone(440, 415, 0.16, 'sawtooth', 0.13, 0); playTone(392, 370, 0.16, 'sawtooth', 0.13, 0.15); playTone(349.23, 330, 0.18, 'sawtooth', 0.13, 0.30); playTone(293.66, 220, 0.38, 'triangle', 0.15, 0.45); },
         draw() { playTone(440, 440, 0.18, 'sine', 0.15, 0); playTone(523.25, 523.25, 0.28, 'sine', 0.15, 0.16); }
       };
+
       const LANGUAGE_LIST = [
         { code: 'en', label: 'English' },
         { code: 'de', label: 'Deutsch' },
@@ -458,6 +476,8 @@
           alreadyMoved: "You already made your standard move! Click 'End Turn' to complete your turn.",
           mustMoveFirst: 'You must make your standard move before ending your turn!',
           cannotPassInCheck: 'You CANNOT PASS while your Center is in check!',
+          endTurnHint: '✅ Click End Turn [Space] (or use Portal)',
+          waitOpponentHint: '⏳ Opponent Turn ({color})',
           promoTitle: '🎖️ Pawn Promotion', promoText: 'Your Pawn reached the final rank! Choose a piece:',
           logAiPromo: 'AI promoted its Pawn to a {piece}!', logPromo: '{color} Pawn promoted to {piece}!',
           tankDirTitle: '🛡️ Tank Shift Direction', tankDirText: 'Which file should the Tank ahead shift to?',
@@ -508,7 +528,7 @@
           waitGoldenTitle: '⏳ Opponent Choosing...', waitGoldenText: 'Waiting for opponent to select a piece for their Golden Square...',
           waitDrawText: 'Waiting for opponent to respond to your draw offer...',
           rematchOfferTitle: '🔄 Rematch Request', rematchOfferText: 'Opponent wants a rematch! Do you accept?',
-          onlineBadge: '🌐 Online ({code})',
+          onlineBadge: '🌐 Online ({code}) • You: {side}',
           lblAiDifficulty: 'AI Difficulty:', optEasy: '🌱 Easy', optMedium: '⚔️ Medium', optHard: '🧠 Hard',
           diffEasy: 'Easy', diffMedium: 'Medium', diffHard: 'Hard',
           lblUserColor: 'Your Side:', optWhite: '⚪ White (First)', optBlack: '🖤 Black', btnStartGame: 'Start Game',
@@ -545,8 +565,10 @@
           gyWhite: '⚪ BEYAZ ELENEN:', gyBlack: '🖤 SİYAH ELENEN:',
           pieces: { K: 'Kale', S: 'Suikastçi', G: 'At', M: 'Merkez', H: 'Şifacı', P: 'Piyon', T: 'Tank' },
           ok: 'Tamam', cancel: 'İptal', infoTitle: 'Bilgi', warnTitle: 'Uyarı', ruleViolation: 'Kural İhlali',
-          alreadyMoved: "Normal hamlenizi zaten yaptınız! Bitirmek için 'Turu Bitir' butonuna basın.",
+          alreadyMoved: "Normal hamlenizi zaten yaptınız! Sırayı rakibe geçirmek için 'Turu Bitir' butonuna basın.",
           mustMoveFirst: 'Turu bitirmeden önce normal hamlenizi yapmalısınız!', cannotPassInCheck: 'Merkez tehdit altındayken PAS GEÇİLEMEZ!',
+          endTurnHint: "✅ Sırayı geçirmek için 'Turu Bitir'e basın",
+          waitOpponentHint: '⏳ Rakip bekleniyor ({color})',
           promoTitle: '🎖️ Piyon Terfisi', promoText: 'Piyonunuz son sıraya ulaştı! Hangi taşa terfi etsin?',
           logAiPromo: 'Yapay Zeka piyonunu {piece} taşına terfi ettirdi!', logPromo: '{color} piyon terfi etti ve {piece} oldu!',
           tankDirTitle: '🛡️ Tank Yönlendirme', tankDirText: 'Öndeki Tank hangi sütuna kaysın?',
@@ -596,7 +618,7 @@
           waitGoldenTitle: '⏳ Rakip Seçim Yapıyor...', waitGoldenText: "Rakibin Altın Kare'ye koyacağı taşı seçmesi bekleniyor...",
           waitDrawText: 'Rakibin beraberlik teklifine yanıt vermesi bekleniyor...',
           rematchOfferTitle: '🔄 Rövanş İsteği', rematchOfferText: 'Rakip rövanş oynamak istiyor! Kabul ediyor musunuz?',
-          onlineBadge: '🌐 Çevrimiçi ({code})',
+          onlineBadge: '🌐 Oda: {code} • Sen: {side}',
           lblAiDifficulty: 'YZ Zorluğu:', optEasy: '🌱 Kolay', optMedium: '⚔️ Orta', optHard: '🧠 Zor',
           diffEasy: 'Kolay', diffMedium: 'Orta', diffHard: 'Zor',
           lblUserColor: 'Tarafınız:', optWhite: '⚪ Beyaz (İlk Başlar)', optBlack: '🖤 Siyah', btnStartGame: 'Oyunu Başlat',
@@ -637,7 +659,7 @@
           btnCreateRoom: 'Raum erstellen', btnJoinRoom: 'Verbinden',
           waitingTitle: '⏳ Warte auf Gegner...', waitingText: 'Teile diesen Raumcode oder Einladungslink:',
           btnCopyCode: '📋 Code kopieren', btnCopyLink: '🔗 Link kopieren', copiedMsg: '✅ Kopiert!',
-          statModeOnline: 'Online ({code}) - {side}', onlineBadge: '🌐 Online ({code})',
+          statModeOnline: 'Online ({code}) - {side}', onlineBadge: '🌐 Online ({code}) • {side}',
           guideTitle: '📖 Spielanleitung & Regeln', guideContinue: 'Weiter zu den Einstellungen ➡️', guideClose: 'Schließen'
         },
         'es': {
@@ -652,7 +674,7 @@
           btnCreateRoom: 'Crear sala', btnJoinRoom: 'Conectar',
           waitingTitle: '⏳ Esperando rival...', waitingText: 'Comparte este código o enlace de invitación:',
           btnCopyCode: '📋 Copiar código', btnCopyLink: '🔗 Copiar enlace', copiedMsg: '✅ ¡Copiado!',
-          statModeOnline: 'En línea ({code}) - {side}', onlineBadge: '🌐 En línea ({code})',
+          statModeOnline: 'En línea ({code}) - {side}', onlineBadge: '🌐 En línea ({code}) • {side}',
           guideTitle: '📖 Guía y Reglas', guideContinue: 'Continuar ➡️', guideClose: 'Cerrar'
         },
         'fr': {
@@ -667,7 +689,7 @@
           btnCreateRoom: 'Créer le salon', btnJoinRoom: 'Rejoindre',
           waitingTitle: '⏳ En attente d’un adversaire...', waitingText: 'Partagez ce code ou lien :',
           btnCopyCode: '📋 Copier code', btnCopyLink: '🔗 Copier lien', copiedMsg: '✅ Copié !',
-          statModeOnline: 'En ligne ({code}) - {side}', onlineBadge: '🌐 En ligne ({code})',
+          statModeOnline: 'En ligne ({code}) - {side}', onlineBadge: '🌐 En ligne ({code}) • {side}',
           guideTitle: '📖 Guide et Règles', guideContinue: 'Continuer ➡️', guideClose: 'Fermer'
         },
         'it': {
@@ -802,7 +824,9 @@
         if (diffKey === 'easy') return t('diffEasy');
         if (diffKey === 'hard') return t('diffHard');
         return t('diffMedium');
-      }let isGuideStartupFlow = false;
+      }
+
+      let isGuideStartupFlow = false;
 
       function initLanguageMenus() {
         const grid = document.getElementById('lang-grid');
@@ -1037,6 +1061,11 @@
 
         window.onGameModeRadioChange();
 
+        if (gameMode === 'online' && onlineRoomId) {
+          const badge = document.getElementById('online-badge');
+          if (badge) badge.innerText = t('onlineBadge', { code: onlineRoomId, side: colorName(onlineColor) });
+        }
+
         if (isGameOver && lastEndReasonKey) {
           document.getElementById('status').innerText = t('gameOverStatus');
           updateResultModalTexts();
@@ -1099,9 +1128,16 @@
       let pendingGoldenFor = '';
       let pendingGoldenChoices = [];
       let activeOnlineWaitModal = null;
+      let isWaitingForOpponent = false;
 
       function isMyOnlineTurn() {
         return gameMode !== 'online' || turn === onlineColor;
+      }
+
+      function isBoardFlipped() {
+        if (gameMode === 'online') return onlineColor === 'black';
+        if (gameMode === 'pve') return userColor === 'black';
+        return false;
       }
 
       // ==========================================
@@ -1116,7 +1152,16 @@
         return code;
       }
 
+      async function waitForFirebase(maxWaitMs = 2500) {
+        const start = Date.now();
+        while (!window._fb && (Date.now() - start) < maxWaitMs) {
+          await new Promise(res => setTimeout(res, 100));
+        }
+        return !!window._fb;
+      }
+
       function cleanupOnlineRoom(notifyLeave = false) {
+        isWaitingForOpponent = false;
         if (onlineUnsubscribe) {
           try { onlineUnsubscribe(); } catch (e) {}
           onlineUnsubscribe = null;
@@ -1181,13 +1226,17 @@
 
       async function createOnlineRoom(chosenHostColor) {
         const statusEl = document.getElementById('onlineLobbyStatus');
-        if (!window._fb) {
+        statusEl.classList.remove('error');
+        statusEl.innerText = t('connectingMsg');
+
+        const fbOk = await waitForFirebase();
+        if (!fbOk) {
           statusEl.innerText = t('fbNotReadyError');
           statusEl.classList.add('error');
           return;
         }
         cleanupOnlineRoom(false);
-        const { db, ref, get, set, onValue, onDisconnect } = window._fb;
+        const { db, ref, get, set, onDisconnect } = window._fb;
 
         let code = generateRoomCode();
         for (let attempt = 0; attempt < 5; attempt++) {
@@ -1201,6 +1250,7 @@
         onlineColor = chosenHostColor;
         userColor = chosenHostColor;
         gameMode = 'online';
+        isWaitingForOpponent = true;
 
         boardState = INITIAL_BOARD.map(row => [...row]);
         turn = 'white'; turnCount = 1; selectedCell = null;
@@ -1229,10 +1279,13 @@
           discRef.set('host');
           onlineDisconnectRef = discRef;
 
+          statusEl.innerText = '';
           document.getElementById('settingsModal').style.display = 'none';
+          createBoard();
           showWaitingRoomModal(code);
           subscribeToOnlineRoom(code);
         } catch (err) {
+          isWaitingForOpponent = false;
           statusEl.innerText = t('connError');
           statusEl.classList.add('error');
         }
@@ -1246,14 +1299,15 @@
           statusEl.classList.add('error');
           return;
         }
-        if (!window._fb) {
+        statusEl.classList.remove('error');
+        statusEl.innerText = t('connectingMsg');
+
+        const fbOk = await waitForFirebase();
+        if (!fbOk) {
           statusEl.innerText = t('fbNotReadyError');
           statusEl.classList.add('error');
           return;
         }
-
-        statusEl.classList.remove('error');
-        statusEl.innerText = t('connectingMsg');
 
         cleanupOnlineRoom(false);
         const { db, ref, get, update, onDisconnect } = window._fb;
@@ -1282,23 +1336,49 @@
           userColor = guestColor;
           gameMode = 'online';
 
+          // Hydrate initial state immediately from snapshot
+          if (data.boardState) {
+            boardState = data.boardState.map(row => Array.isArray(row) ? [...row] : Object.values(row));
+          }
+          turn = data.turn || 'white';
+          turnCount = data.turnCount || 1;
+          goldenSquare = {
+            white: (data.goldenSquare && data.goldenSquare.white) ? data.goldenSquare.white : null,
+            black: (data.goldenSquare && data.goldenSquare.black) ? data.goldenSquare.black : null
+          };
+          capturedPieces = {
+            white: (data.capturedPieces && data.capturedPieces.white) ? Object.values(data.capturedPieces.white) : [],
+            black: (data.capturedPieces && data.capturedPieces.black) ? Object.values(data.capturedPieces.black) : []
+          };
+          passes = data.passes ? { white: data.passes.white || 0, black: data.passes.black || 0 } : { white: 0, black: 0 };
+          healerMoved = data.healerMoved ? { white: !!data.healerMoved.white, black: !!data.healerMoved.black } : { white: false, black: false };
+          portalUsedThisTurn = !!data.portalUsedThisTurn;
+          normalMoveDoneThisTurn = !!data.normalMoveDoneThisTurn;
+          lastMoveCoords = data.lastMoveCoords || null;
+          isGameOver = !!data.isGameOver;
+
           const discRef = onDisconnect(ref(db, 'rooms/' + code + '/disconnectedBy'));
           discRef.set('guest');
           onlineDisconnectRef = discRef;
 
+          const now = Date.now();
+          lastSyncedTimestamp = now;
           await update(roomRef, {
             guestConnected: true,
             status: 'playing',
             disconnectedBy: '',
-            updatedAt: Date.now()
+            updatedAt: now
           });
 
+          statusEl.innerText = '';
           document.getElementById('settingsModal').style.display = 'none';
           const badge = document.getElementById('online-badge');
           if (badge) {
-            badge.innerText = t('onlineBadge', { code });
+            badge.innerText = t('onlineBadge', { code, side: colorName(onlineColor) });
             badge.style.display = 'inline-block';
           }
+          document.getElementById('status').innerText = t('turnLabel', { color: colorName(turn) });
+          createBoard();
           log(t('logNewGame', { mode: t('statModeOnline', { code, side: colorName(onlineColor) }), side: colorName(onlineColor) }));
           subscribeToOnlineRoom(code);
         } catch (err) {
@@ -1378,24 +1458,23 @@
       function handleRemoteRoomData(data) {
         if (data.disconnectedBy && data.disconnectedBy !== onlineRole && !isGameOver) {
           isGameOver = true;
+          isWaitingForOpponent = false;
           document.getElementById('customModal').style.display = 'none';
           showAlert(t('warnTitle'), t('peerDisconnected'));
           createBoard();
           return;
         }
 
-        if (data.status === 'playing') {
-          const modal = document.getElementById('customModal');
-          if (modal.style.display !== 'none' && document.getElementById('modalTitle').innerText === t('waitingTitle')) {
-            modal.style.display = 'none';
-            SoundFX.promote();
-            const badge = document.getElementById('online-badge');
-            if (badge) {
-              badge.innerText = t('onlineBadge', { code: onlineRoomId });
-              badge.style.display = 'inline-block';
-            }
-            log(t('logNewGame', { mode: t('statModeOnline', { code: onlineRoomId, side: colorName(onlineColor) }), side: colorName(onlineColor) }));
+        if (data.status === 'playing' && isWaitingForOpponent) {
+          isWaitingForOpponent = false;
+          document.getElementById('customModal').style.display = 'none';
+          SoundFX.promote();
+          const badge = document.getElementById('online-badge');
+          if (badge) {
+            badge.innerText = t('onlineBadge', { code: onlineRoomId, side: colorName(onlineColor) });
+            badge.style.display = 'inline-block';
           }
+          log(t('logNewGame', { mode: t('statModeOnline', { code: onlineRoomId, side: colorName(onlineColor) }), side: colorName(onlineColor) }));
         }
 
         if (data.updatedAt && data.updatedAt === lastSyncedTimestamp) {
@@ -1557,14 +1636,18 @@
         leftCoords.innerHTML = '';
         bottomCoords.innerHTML = '';
 
-        for (let r = 0; r < ROWS; r++) {
+        const flipped = isBoardFlipped();
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+        for (let visR = 0; visR < ROWS; visR++) {
+          const r = flipped ? (ROWS - 1 - visR) : visR;
           const span = document.createElement('span');
           span.innerText = 8 - r;
           leftCoords.appendChild(span);
         }
 
-        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-        for (let c = 0; c < COLS; c++) {
+        for (let visC = 0; visC < COLS; visC++) {
+          const c = flipped ? (COLS - 1 - visC) : visC;
           const span = document.createElement('span');
           span.innerText = letters[c];
           bottomCoords.appendChild(span);
@@ -1585,11 +1668,13 @@
           lastCheckAlertPlayed = false;
         }
 
-        for (let r = 0; r < ROWS; r++) {
+        for (let visR = 0; visR < ROWS; visR++) {
+          const r = flipped ? (ROWS - 1 - visR) : visR;
           const rowDiv = document.createElement('div');
           rowDiv.className = 'board-row';
 
-          for (let c = 0; c < COLS; c++) {
+          for (let visC = 0; visC < COLS; visC++) {
+            const c = flipped ? (COLS - 1 - visC) : visC;
             const cell = document.createElement('div');
             cell.className = `cell ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
             cell.dataset.r = r;
@@ -1636,15 +1721,21 @@
         if (!svg) return;
         svg.innerHTML = '';
 
+        const flipped = isBoardFlipped();
         const firstCell = document.querySelector('.cell');
         const cellSize = firstCell ? firstCell.offsetWidth : 60;
         const half = cellSize / 2;
 
         function createLink(r1, c1, r2, c2, color) {
-          const x1 = c1 * cellSize + half;
-          const y1 = r1 * cellSize + half;
-          const x2 = c2 * cellSize + half;
-          const y2 = r2 * cellSize + half;
+          const vr1 = flipped ? (ROWS - 1 - r1) : r1;
+          const vc1 = flipped ? (COLS - 1 - c1) : c1;
+          const vr2 = flipped ? (ROWS - 1 - r2) : r2;
+          const vc2 = flipped ? (COLS - 1 - c2) : c2;
+
+          const x1 = vc1 * cellSize + half;
+          const y1 = vr1 * cellSize + half;
+          const x2 = vc2 * cellSize + half;
+          const y2 = vr2 * cellSize + half;
 
           const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
           line.setAttribute('x1', x1); line.setAttribute('y1', y1);
@@ -1693,26 +1784,33 @@
         const whiteBox = document.getElementById('golden-white-box');
         const firstCell = document.querySelector('.cell');
         const cellSize = firstCell ? firstCell.offsetHeight : 60;
+        const flipped = isBoardFlipped();
 
-        blackBox.style.top = (0 * cellSize) + 'px';
-        whiteBox.style.top = (7 * cellSize) + 'px';
+        blackBox.style.top = ((flipped ? 7 : 0) * cellSize) + 'px';
+        whiteBox.style.top = ((flipped ? 0 : 7) * cellSize) + 'px';
 
         blackBox.innerHTML = '';
         if (goldenSquare.black) {
+          blackBox.classList.remove('empty-golden');
           const span = document.createElement('span');
           span.innerText = SYMBOLS[goldenSquare.black[1]] || goldenSquare.black;
           span.className = 'piece-black';
           span.title = pieceName(goldenSquare.black[1]);
           blackBox.appendChild(span);
+        } else {
+          blackBox.classList.add('empty-golden');
         }
 
         whiteBox.innerHTML = '';
         if (goldenSquare.white) {
+          whiteBox.classList.remove('empty-golden');
           const span = document.createElement('span');
           span.innerText = SYMBOLS[goldenSquare.white[1]] || goldenSquare.white;
           span.className = 'piece-white';
           span.title = pieceName(goldenSquare.white[1]);
           whiteBox.appendChild(span);
+        } else {
+          whiteBox.classList.add('empty-golden');
         }
       }
 
@@ -1721,11 +1819,36 @@
         const isRemoteTurn = (gameMode === 'online' && turn !== onlineColor);
         const locked = isGameOver || isAiTurn || isRemoteTurn || !!pendingGoldenFor;
 
+        const finishBtn = document.getElementById('btn-finish');
+        const hintBanner = document.getElementById('turn-hint-banner');
+
         document.getElementById('btn-portal').disabled = locked || portalUsedThisTurn;
-        document.getElementById('btn-finish').disabled = locked || !normalMoveDoneThisTurn;
+        finishBtn.disabled = locked || !normalMoveDoneThisTurn;
         document.getElementById('btn-pass').disabled = locked || normalMoveDoneThisTurn;
         document.getElementById('btn-draw').disabled = isGameOver || isAiTurn || !!pendingGoldenFor;
         document.getElementById('pass-info').innerText = t('passInfo', { w: passes.white, b: passes.black });
+
+        if (!locked && normalMoveDoneThisTurn) {
+          finishBtn.classList.add('ready-pulse');
+          if (hintBanner) {
+            hintBanner.innerText = t('endTurnHint');
+            hintBanner.style.display = 'inline-block';
+          }
+        } else {
+          finishBtn.classList.remove('ready-pulse');
+          if (hintBanner) {
+            if (!isGameOver && isRemoteTurn) {
+              hintBanner.innerText = t('waitOpponentHint', { color: colorName(turn) });
+              hintBanner.style.display = 'inline-block';
+              hintBanner.style.background = '#3498db';
+              hintBanner.style.color = '#fff';
+            } else {
+              hintBanner.style.display = 'none';
+              hintBanner.style.background = '#2ecc71';
+              hintBanner.style.color = '#1a252f';
+            }
+          }
+        }
       }
 
       function log(msg) {
@@ -1972,6 +2095,7 @@
         }
         return false;
       }
+
       // ==========================================
       // MOVE EXECUTION & SPECIAL MECHANICS
       // ==========================================
@@ -2033,7 +2157,6 @@
         const piece = boardState[sr][sc];
         const target = boardState[tr][tc];
         const colorChar = piece[0];
-        const oppColor = turn === 'white' ? 'black' : 'white';
         const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
         // 1. Tank Push Mechanic
@@ -2196,24 +2319,31 @@
         const oppColor = turn === 'white' ? 'black' : 'white';
         const promoRow = turn === 'white' ? 0 : 7;
 
-        const afterPromotion = (finalLog) => {
-          if (newlyCaptured.length > 0) {
-            handleGoldenSquareCapture(oppColor, newlyCaptured, () => {
-              createBoard();
-              if (!checkInsufficientMaterial()) {
-                pushOnlineState({ lastLogMsg: finalLog });
-              } else {
-                pushOnlineState({ lastLogMsg: finalLog });
-              }
-            });
+        const finishMoveStep = (finalLog) => {
+          createBoard();
+          if (checkInsufficientMaterial()) {
+            pushOnlineState({ lastLogMsg: finalLog });
+            return;
+          }
+          // If portal was already used this turn, no actions remain -> auto-advance turn
+          if (portalUsedThisTurn) {
+            passes[turn] = 0;
+            advanceToNextTurn(finalLog);
           } else {
-            createBoard();
-            checkInsufficientMaterial();
             pushOnlineState({ lastLogMsg: finalLog });
           }
         };
 
-        // Check Pawn Promotion
+        const afterPromotion = (finalLog) => {
+          if (newlyCaptured.length > 0) {
+            handleGoldenSquareCapture(oppColor, newlyCaptured, () => {
+              finishMoveStep(finalLog);
+            });
+          } else {
+            finishMoveStep(finalLog);
+          }
+        };
+
         if (movedPiece[1] === 'P' && tr === promoRow) {
           const modal = document.getElementById('customModal');
           document.getElementById('modalTitle').innerText = t('promoTitle');
@@ -2247,7 +2377,6 @@
           return;
         }
 
-        // If victim's Golden Square is already occupied, send directly to graveyard
         if (goldenSquare[victimColor]) {
           newlyCapturedPieces.forEach(p => capturedPieces[victimColor].push(p));
           log(t('logGoldenFull', { color: colorName(victimColor) }));
@@ -2255,7 +2384,6 @@
           return;
         }
 
-        // AI Victim Logic
         if (gameMode === 'pve' && victimColor === aiColor) {
           const priority = { 'K': 5, 'S': 5, 'G': 4, 'H': 3, 'T': 3, 'P': 1 };
           let bestIdx = 0;
@@ -2274,7 +2402,6 @@
           return;
         }
 
-        // Online Victim is Remote Opponent -> Delegate choice via Firebase
         if (gameMode === 'online' && victimColor !== onlineColor) {
           pendingGoldenFor = victimColor;
           pendingGoldenChoices = [...newlyCapturedPieces];
@@ -2289,7 +2416,6 @@
           return;
         }
 
-        // Local Human Choice (PvP, PvE human victim, or Online local victim)
         const modal = document.getElementById('customModal');
         document.getElementById('modalTitle').innerText = t('goldenTitle', { color: colorName(victimColor) });
         document.getElementById('modalText').innerText = t('goldenText');
@@ -2396,7 +2522,13 @@
         const msg = t('logPortalUsed', { color: colorName(turn) });
         log(msg);
         createBoard();
-        pushOnlineState({ lastLogMsg: msg });
+
+        if (normalMoveDoneThisTurn) {
+          passes[turn] = 0;
+          advanceToNextTurn(msg);
+        } else {
+          pushOnlineState({ lastLogMsg: msg });
+        }
       }
 
       window.offerDraw = function() {
@@ -2437,7 +2569,6 @@
           return;
         }
 
-        // Local 2P Draw Offer
         const nextSide = turn === 'white' ? 'black' : 'white';
         const modal = document.getElementById('customModal');
         document.getElementById('modalTitle').innerText = t('drawOfferTitle');
@@ -2523,7 +2654,6 @@
             pushOnlineState({ lastLogMsg: extraLog });
             return;
           } else {
-            // Stalemate / No legal moves while not in check -> Automatic Pass
             passes[turn]++;
             const autoMsg = t('logAutoPass', { color: colorName(turn) }) + ' ' + t('logPass', { color: colorName(turn), count: passes[turn] });
             log(autoMsg);
