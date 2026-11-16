@@ -462,8 +462,8 @@
           alreadyMoved: "You already made your standard move! Click 'End Turn' to complete your turn.",
           mustMoveFirst: 'You must make your standard move before ending your turn!',
           cannotPassInCheck: 'You CANNOT PASS while your Center is in check!',
-          promoTitle: '🎖️ Pawn Promotion', promoText: 'Your Pawn reached the final rank! Choose a piece:',
-          logAiPromo: 'AI promoted its Pawn to a {piece}!', logPromo: '{color} Pawn promoted to {piece}!',
+          promoTitle: '🎖️ Soldier Promotion', promoText: 'Your Soldier reached the final rank! Choose a piece:',
+          logAiPromo: 'AI promoted its Soldier to a {piece}!', logPromo: '{color} Soldier promoted to {piece}!',
           tankDirTitle: '🛡️ Tank Shift Direction', tankDirText: 'Which file should the Tank ahead shift to?',
           tankLeft: '⬅️ Left ({col})', tankRight: '➡️ Right ({col})',
           logTankPush: '{color} {piece} advanced, shifting the Tank to {col}.',
@@ -513,12 +513,12 @@
           gSec2Title: '2. Special Pieces & Moves',
           gSec2Items: [
             'Center (♚): Moves 1 square in any direction. Must be protected from checkmate.',
-            'Rook (♜): Slides orthogonally any distance in your half, and up to 3 squares in enemy territory.',
-            'Knight (♞): Standard L-shaped jump (2+1).',
+            'Tower (♜): Slides orthogonally any distance in your half, and up to 3 squares in enemy territory.',
+            'Scout (♞): Standard L-shaped jump (2+1).',
             'Assassin (⚔): Moves 1–2 squares orthogonally or any distance diagonally. Captures by jumping over 1 or more consecutive enemy pieces onto the empty square immediately behind them.',
             'Tank (⛨): Moves 1–2 forward, 1 backward, or 1 sideways. A friendly Pawn or Tank advancing into its square shifts it sideways to an open file.',
             'Healer (✚): Moves 1 square in any direction (can jump 2 squares on its first move). When capturing, it can revive your Golden Square piece onto the capture square.',
-            'Pawn (♟): Moves 1 forward (2 on first move), captures diagonally forward, and promotes to Rook, Assassin, or Knight on the last rank.'
+            'Soldier (♟): Moves 1 forward (2 on first move), captures diagonally forward, and promotes to Rook, Assassin, or Knight on the last rank.'
           ],
           gSec3Title: '3. Golden Square & Portal Links',
           gSec3Items: [
@@ -547,8 +547,8 @@
           ok: 'OK', cancel: 'Abbrechen', infoTitle: 'Info', warnTitle: 'Warnung', ruleViolation: 'Regelverstoß',
           alreadyMoved: 'Regulärer Zug bereits ausgeführt! Klicke auf „Zug beenden“.',
           mustMoveFirst: 'Führe zuerst deinen regulären Zug aus!', cannotPassInCheck: 'Im Schach darfst du NICHT PASSEN!',
-          promoTitle: '🎖️ Bauernumwandlung', promoText: 'Wähle eine Figur für die Umwandlung:',
-          logAiPromo: 'KI wandelte Bauern in {piece} um!', logPromo: '{color} Bauer wurde zu {piece}!',
+          promoTitle: '🎖️ Soldatenumwandlung', promoText: 'Dein Soldat hat die letzte Reihe erreicht! Wähle eine Figur:',
+          logAiPromo: 'KI hat ihren Soldaten in {piece} umgewandelt!', logPromo: '{color} Soldat wurde zu {piece} umgewandelt!',
           tankDirTitle: '🛡️ Panzer-Richtung', tankDirText: 'Auf welche Linie soll der Panzer ausweichen?',
           tankLeft: '⬅️ Links ({col})', tankRight: '➡️ Rechts ({col})',
           logTankPush: '{color} {piece} verschob den Panzer auf Linie {col}.',
@@ -598,11 +598,11 @@
           gSec2Items: [
             'Zentrum (♚): Zieht 1 Feld in jede Richtung. Darf nicht schachmatt gesetzt werden.',
             'Turm (♜): Zieht orthogonal beliebig weit in der eigenen Hälfte und bis zu 3 Felder im gegnerischen Gebiet.',
-            'Springer (♞): Standardmäßiger L-Sprung (2+1).',
+            'Späher (♞): Standardmäßiger L-Sprung (2+1).',
             'Assassine (⚔): Zieht 1–2 Felder orthogonal oder beliebig weit diagonal. Schlägt durch Überspringen von 1 oder mehr gegnerischen Figuren auf das freie Feld dahinter.',
             'Panzer (⛨): Zieht 1–2 vorwärts, 1 rückwärts oder 1 seitwärts. Ein vorrückender eigener Bauer oder Panzer schiebt ihn seitlich auf eine freie Linie.',
             'Heiler (✚): Zieht 1 Feld beliebig (im ersten Zug 2 Felder Sprung möglich). Beim Schlagen kann er die Figur vom Goldenen Feld auf das Schlagfeld wiederbeleben.',
-            'Bauer (♟): Zieht 1 vorwärts (2 beim Start), schlägt diagonal vorwärts und verwandelt sich auf der letzten Reihe in Turm, Assassine oder Springer.'
+            'Soldat (♟): Zieht 1 vorwärts (2 beim Start), schlägt diagonal vorwärts und verwandelt sich auf der letzten Reihe in Turm, Assassine oder Springer.'
           ],
           gSec3Title: '3. Goldenes Feld & Portale',
           gSec3Items: [
@@ -631,8 +631,8 @@
           ok: 'OK', cancel: 'Cancelar', infoTitle: 'Info', warnTitle: 'Aviso', ruleViolation: 'Infracción',
           alreadyMoved: '¡Ya hiciste tu jugada! Pulsa «Terminar» para completar tu turno.',
           mustMoveFirst: '¡Debes mover antes de terminar el turno!', cannotPassInCheck: '¡NO PUEDES PASAR estando en jaque!',
-          promoTitle: '🎖️ Promoción', promoText: 'Elige la pieza de promoción:',
-          logAiPromo: '¡La IA promocionó su Peón a {piece}!', logPromo: '¡Peón de {color} promocionado a {piece}!',
+          promoTitle: '🎖️ Coronación de Soldado', promoText: '¡Tu Soldado llegó a la última fila! Elige una pieza:',
+          logAiPromo: '¡La IA coronó su Soldado a {piece}!', logPromo: '¡Soldado {color} coronó a {piece}!',
           tankDirTitle: '🛡️ Dirección del Tanque', tankDirText: '¿A qué columna debe desplazarse el Tanque?',
           tankLeft: '⬅️ Izquierda ({col})', tankRight: '➡️ Derecha ({col})',
           logTankPush: '{piece} de {color} desplazó al Tanque a {col}.',
@@ -682,11 +682,11 @@
           gSec2Items: [
             'Centro (♚): Mueve 1 casilla en cualquier dirección. Debe evitar el jaque mate.',
             'Torre (♜): Desliza ortogonalmente sin límite en tu mitad y hasta 3 casillas en territorio rival.',
-            'Caballo (♞): Salto estándar en L (2+1).',
+            'Explorador (♞): Salto estándar en L (2+1).',
             'Asesino (⚔): Mueve 1–2 ortogonal o cualquier distancia en diagonal. Captura saltando sobre 1 o más piezas enemigas seguidas hasta la casilla vacía detrás.',
             'Tanque (⛨): Mueve 1–2 adelante, 1 atrás o 1 lateral. Si un Peón o Tanque aliado avanza a su casilla, lo desplaza lateralmente.',
             'Sanador (✚): Mueve 1 casilla en cualquier dirección (salta 2 en su primer turno). Al capturar, puede revivir la pieza de tu Casilla Dorada.',
-            'Peón (♟): Avanza 1 (2 al inicio), captura en diagonal y corona en Torre, Asesino o Caballo.'
+            'Soldado (♟): Avanza 1 (2 al inicio), captura en diagonal y corona en Torre, Asesino o Caballo.'
           ],
           gSec3Title: '3. Casilla Dorada y Portales',
           gSec3Items: [
@@ -715,8 +715,8 @@
           ok: 'OK', cancel: 'Annuler', infoTitle: 'Info', warnTitle: 'Attention', ruleViolation: 'Infraction',
           alreadyMoved: 'Coup déjà joué ! Cliquez sur « Fin du tour ».',
           mustMoveFirst: 'Jouez un coup avant de terminer votre tour !', cannotPassInCheck: 'Impossible de passer en échec !',
-          promoTitle: '🎖️ Promotion', promoText: 'Choisissez la pièce de promotion :',
-          logAiPromo: 'L’IA a promu son Pion en {piece} !', logPromo: 'Pion {color} promu en {piece} !',
+          promoTitle: '🎖️ Promotion du Soldat', promoText: 'Votre Soldat a atteint la dernière rangée ! Choisissez une pièce :',
+          logAiPromo: "L'IA a promu son Soldat en {piece} !", logPromo: 'Soldat {color} promu en {piece} !',
           tankDirTitle: '🛡️ Direction du Char', tankDirText: 'Vers quelle colonne décaler le Char ?',
           tankLeft: '⬅️ Gauche ({col})', tankRight: '➡️ Droite ({col})',
           logTankPush: '{piece} ({color}) a décalé le Char vers {col}.',
@@ -766,11 +766,11 @@
           gSec2Items: [
             'Centre (♚) : 1 case dans toutes les directions. Doit être protégé du mat.',
             'Tour (♜) : Glisse orthogonalement sans limite dans votre moitié et jusqu’à 3 cases en camp adverse.',
-            'Cavalier (♞) : Saut en L classique (2+1).',
+            'Éclaireur (♞) : Saut en L classique (2+1).',
             'Assassin (⚔) : 1–2 cases orthogonalement ou toute distance en diagonale. Capture en sautant par-dessus 1 ou plusieurs pièces adverses alignées.',
             'Char (⛨) : 1–2 en avant, 1 en arrière ou 1 sur le côté. Un Pion ou Char allié avançant sur sa case le pousse latéralement.',
             'Soigneur (✚) : 1 case dans toutes les directions (saut de 2 au 1er coup). En capturant, il peut ressusciter la pièce de votre Case Dorée.',
-            'Pion (♟) : Avance de 1 (2 au départ), capture en diagonale et se promeut en Tour, Assassin ou Cavalier.'
+            'Soldat (♟) : Avance de 1 (2 au départ), capture en diagonale et se promeut en Tour, Assassin ou Cavalier.'
           ],
           gSec3Title: '3. Case Dorée et Portails',
           gSec3Items: [
@@ -799,8 +799,8 @@
           ok: 'OK', cancel: 'Annulla', infoTitle: 'Info', warnTitle: 'Avviso', ruleViolation: 'Violazione',
           alreadyMoved: 'Mossa già effettuata! Premi «Fine turno».',
           mustMoveFirst: 'Devi muovere prima di terminare il turno!', cannotPassInCheck: 'Non puoi passare sotto scacco!',
-          promoTitle: '🎖️ Promozione', promoText: 'Scegli il pezzo per la promozione:',
-          logAiPromo: 'L’IA ha promosso il Pedone a {piece}!', logPromo: 'Pedone {color} promosso a {piece}!',
+          promoTitle: '🎖️ Promozione del Soldato', promoText: 'Il tuo Soldato ha raggiunto l’ultima traversa! Scegli un pezzo:',
+          logAiPromo: "L'IA ha promosso il suo Soldato a {piece}!", logPromo: 'Soldato {color} promosso a {piece}!',
           tankDirTitle: '🛡️ Direzione del Carro', tankDirText: 'Su quale colonna spostare il Carro?',
           tankLeft: '⬅️ Sinistra ({col})', tankRight: '➡️ Destra ({col})',
           logTankPush: '{piece} ({color}) ha spostato il Carro su {col}.',
@@ -850,11 +850,11 @@
           gSec2Items: [
             'Centro (♚): 1 casella in ogni direzione. Va protetto dallo scacco matto.',
             'Torre (♜): Scorre ortogonalmente senza limiti nella propria metà e fino a 3 caselle in territorio nemico.',
-            'Cavallo (♞): Salto a L classico (2+1).',
+            'Esploratore (♞): Salto a L classico (2+1).',
             'Assassino (⚔): 1–2 caselle ortogonali o qualsiasi distanza in diagonale. Cattura saltando 1 o più pezzi nemici consecutivi.',
             'Carro (⛨): 1–2 avanti, 1 indietro o 1 di lato. Un Pedone o Carro alleato che avanza sulla sua casella lo sposta lateralmente.',
             'Guaritore (✚): 1 casella ovunque (salto di 2 alla prima mossa). Catturando può resuscitare il pezzo dalla Casella Dorata.',
-            'Pedone (♟): Avanza di 1 (2 all’inizio), cattura in diagonale e promuove in Torre, Assassino o Cavallo.'
+            'Soldato (♟): Avanza di 1 (2 all’inizio), cattura in diagonale e promuove in Torre, Assassino o Cavallo.'
           ],
           gSec3Title: '3. Casella Dorata e Portali',
           gSec3Items: [
@@ -883,8 +883,8 @@
           ok: 'OK', cancel: 'Anuluj', infoTitle: 'Info', warnTitle: 'Ostrzeżenie', ruleViolation: 'Naruszenie zasad',
           alreadyMoved: 'Ruch już wykonany! Kliknij „Zakończ”.',
           mustMoveFirst: 'Wykonaj ruch przed zakończeniem tury!', cannotPassInCheck: 'Nie możesz pasować w szachu!',
-          promoTitle: '🎖️ Promocja', promoText: 'Wybierz figurę do promocji:',
-          logAiPromo: 'SI promowała Pionka na: {piece}!', logPromo: 'Pionek ({color}) promowany na: {piece}!',
+          promoTitle: '🎖️ Promocja Żołnierza', promoText: 'Twój Żołnierz dotarł do ostatniego rzędu! Wybierz figurę:',
+          logAiPromo: 'SI promowała swojego Żołnierza na: {piece}!', logPromo: 'Żołnierz ({color}) promowany na: {piece}!',
           tankDirTitle: '🛡️ Kierunek Czołgu', tankDirText: 'Na którą kolumnę przesunąć Czołg?',
           tankLeft: '⬅️ W lewo ({col})', tankRight: '➡️ W prawo ({col})',
           logTankPush: '{piece} ({color}) przesunął Czołg na {col}.',
@@ -934,11 +934,11 @@
           gSec2Items: [
             'Centrum (♚): Porusza się o 1 pole w dowolnym kierunku.',
             'Wieża (♜): Porusza się ortogonalnie bez limitu na własnej połowie i do 3 pól na połowie wroga.',
-            'Skoczek (♞): Standardowy skok w kształcie litery L (2+1).',
+            'Zwiadowca (♞): Standardowy skok w kształcie litery L (2+1).',
             'Asasyn (⚔): 1–2 pola ortogonalnie lub dowolnie po skosie. Bije przeskakując nad 1 lub kilkoma figurami wroga na wolne pole za nimi.',
             'Czołg (⛨): 1–2 do przodu, 1 do tyłu lub 1 w bok. Sojuszniczy Pionek lub Czołg wchodzący na jego pole przesuwa go w bok.',
             'Uzdrowiciel (✚): 1 pole w każdą stronę (skok o 2 w pierwszym ruchu). Przy biciu może wskrzesić figurę ze Złotego Pola.',
-            'Pionek (♟): 1 pole do przodu (2 na starcie), bije na skos i promuje na Wieżę, Asasyna lub Skoczka.'
+            'Żołnierz (♟): 1 pole do przodu (2 na starcie), bije na skos i promuje na Wieżę, Asasyna lub Skoczka.'
           ],
           gSec3Title: '3. Złote Pole i Portale',
           gSec3Items: [
@@ -967,8 +967,8 @@
           ok: 'OK', cancel: 'Cancelar', infoTitle: 'Info', warnTitle: 'Aviso', ruleViolation: 'Violação',
           alreadyMoved: 'Jogada já realizada! Clique em "Encerrar".',
           mustMoveFirst: 'Faça sua jogada antes de encerrar o turno!', cannotPassInCheck: 'Não pode passar em xeque!',
-          promoTitle: '🎖️ Promoção', promoText: 'Escolha a peça de promoção:',
-          logAiPromo: 'A IA promoveu seu Peão para {piece}!', logPromo: 'Peão das {color} promovido para {piece}!',
+          promoTitle: '🎖️ Promoção de Soldado', promoText: 'Seu Soldado chegou à última fileira! Escolha uma peça:',
+          logAiPromo: 'A IA promoveu seu Soldado para {piece}!', logPromo: 'Soldado {color} promovido para {piece}!',
           tankDirTitle: '🛡️ Direção do Tanque', tankDirText: 'Para qual coluna deslocar o Tanque?',
           tankLeft: '⬅️ Esquerda ({col})', tankRight: '➡️ Direita ({col})',
           logTankPush: '{piece} das {color} deslocou o Tanque para {col}.',
@@ -1018,11 +1018,11 @@
           gSec2Items: [
             'Centro (♚): Move 1 casa em qualquer direção.',
             'Torre (♜): Desliza ortogonalmente sem limite no seu campo e até 3 casas no campo inimigo.',
-            'Cavalo (♞): Salto clássico em L (2+1).',
+            'Batedor (♞): Salto clássico em L (2+1).',
             'Assassino (⚔): 1–2 ortogonal ou diagonal livre. Captura saltando sobre 1 ou mais peças inimigas seguidas até a casa vazia atrás.',
             'Tanque (⛨): 1–2 para frente, 1 para trás ou 1 para o lado. Um Peão ou Tanque aliado avançando em sua casa o empurra para o lado.',
             'Curandeiro (✚): 1 casa em qualquer direção (salta 2 no primeiro lance). Ao capturar, pode ressuscitar a peça da Casa Dourada.',
-            'Peão (♟): Avança 1 (2 no início), captura na diagonal e promove para Torre, Assassino ou Cavalo.'
+            'Soldado (♟): Avança 1 (2 no início), captura na diagonal e promove para Torre, Assassino ou Cavalo.'
           ],
           gSec3Title: '3. Casa Dourada e Portais',
           gSec3Items: [
@@ -1051,8 +1051,8 @@
           ok: 'Tamam', cancel: 'İptal', infoTitle: 'Bilgi', warnTitle: 'Uyarı', ruleViolation: 'Kural İhlali',
           alreadyMoved: "Normal hamlenizi zaten yaptınız! Bitirmek için 'Turu Bitir' butonuna basın.",
           mustMoveFirst: 'Turu bitirmeden önce normal hamlenizi yapmalısınız!', cannotPassInCheck: 'Merkez tehdit altındayken PAS GEÇİLEMEZ!',
-          promoTitle: '🎖️ Piyon Terfisi', promoText: 'Piyonunuz son sıraya ulaştı! Hangi taşa terfi etsin?',
-          logAiPromo: 'Yapay Zeka piyonunu {piece} taşına terfi ettirdi!', logPromo: '{color} piyon terfi etti ve {piece} oldu!',
+          promoTitle: '🎖️ Asker Terfisi', promoText: 'Askeriniz son sıraya ulaştı! Hangi taşa terfi etsin?',
+          logAiPromo: 'Yapay Zeka askerini {piece} taşına terfi ettirdi!', logPromo: '{color} asker terfi etti ve {piece} oldu!',
           tankDirTitle: '🛡️ Tank Yönlendirme', tankDirText: 'Öndeki Tank hangi sütuna kaysın?',
           tankLeft: '⬅️ Sol ({col})', tankRight: '➡️ Sağ ({col})',
           logTankPush: '{color} {piece} ilerledi, Tank {col} sütununa kaydı.',
@@ -1101,12 +1101,12 @@
           gSec2Title: '2. Özel Taşlar ve Hareketleri',
           gSec2Items: [
             'Merkez (♚): Her yöne 1 kare gider. Şah-mat edilmekten korunmalıdır.',
-            'Kale (♜): Kendi yarı sahanızda sınırsız, rakip yarı sahada ise en fazla 3 kare dikey/yatay ilerler.',
-            'At (♞): Standart L şeklinde (2+1) zıplar.',
+            'Kule (♜): Kendi yarı sahanızda sınırsız, rakip yarı sahada ise en fazla 3 kare dikey/yatay ilerler.',
+            'Gözcü (♞): Standart L şeklinde (2+1) zıplar.',
             'Suikastçi (⚔): Dikey/yatay 1–2 kare, çapraz sınırsız gider. Arka arkaya dizili 1 veya daha fazla rakip taşın üzerinden atlayıp hemen arkalarındaki boş kareye inerek hepsini birden yer.',
             'Tank (⛨): 1–2 kare ileri, 1 geri veya 1 yana gider. Arkasındaki dost Piyon veya Tank onun karesine ilerlerse Tank yanındaki boş sütuna kayar.',
             'Şifacı (✚): Her yöne 1 kare gider (ilk hamlesinde 2 kare atlayabilir). Rakip taş yediğinde Altın Kare’deki taşınızı yediği kareye diriltebilir.',
-            'Piyon (♟): 1 kare ileri gider (başlangıçta 2), çapraz yer ve son sırada Kale, Suikastçi veya At’a terfi eder.'
+            'Asker (♟): 1 kare ileri gider (başlangıçta 2), çapraz yer ve son sırada Kale, Suikastçi veya At’a terfi eder.'
           ],
           gSec3Title: '3. Altın Kare ve Bağlantı Hatları',
           gSec3Items: [
@@ -1135,8 +1135,8 @@
           ok: 'ОК', cancel: 'Отмена', infoTitle: 'Инфо', warnTitle: 'Внимание', ruleViolation: 'Нарушение',
           alreadyMoved: 'Ход уже сделан! Нажмите «Завершить».',
           mustMoveFirst: 'Сначала сделайте обычный ход!', cannotPassInCheck: 'Нельзя пасовать под шахом!',
-          promoTitle: '🎖️ Превращение', promoText: 'Выберите фигуру для превращения:',
-          logAiPromo: 'ИИ превратил пешку в: {piece}!', logPromo: 'Пешка ({color}) превратилась в: {piece}!',
+          promoTitle: '🎖️ Превращение солдата', promoText: 'Ваш солдат достиг последней горизонтали! Выберите фигуру:',
+          logAiPromo: 'ИИ превратил своего солдата в фигуру {piece}!', logPromo: 'Солдат ({color}) превратился в фигуру {piece}!',
           tankDirTitle: '🛡️ Сдвиг Танка', tankDirText: 'На какую вертикаль сдвинуть Танк?',
           tankLeft: '⬅️ Влево ({col})', tankRight: '➡️ Вправо ({col})',
           logTankPush: '{piece} ({color}) сдвинул Танк на {col}.',
@@ -1185,12 +1185,12 @@
           gSec2Title: '2. Особые фигуры',
           gSec2Items: [
             'Центр (♚): Ходит на 1 клетку в любом направлении.',
-            'Ладья (♜): Ходит по прямым без ограничений на своей половине и до 3 клеток на половине соперника.',
-            'Конь (♞): Стандартный прыжок буквой «Г» (2+1).',
+            'Башня (♜): Ходит по прямым без ограничений на своей половине и до 3 клеток на половине соперника.',
+            'Разведчик (♞): Стандартный прыжок буквой «Г» (2+1).',
             'Ассасин (⚔): 1–2 клетки по прямой или на любое расстояние по диагонали. Бьёт, перепрыгивая через 1 или несколько вражеских фигур подряд на пустое поле за ними.',
             'Танк (⛨): 1–2 вперёд, 1 назад или 1 вбок. Союзная Пешка или Танк, идущие на его клетку, сдвигают его вбок.',
             'Целитель (✚): 1 клетка вокруг (прыжок на 2 первым ходом). При взятии может воскресить фигуру с Золотого поля.',
-            'Пешка (♟): 1 вперёд (2 с начальной), бьёт по диагонали и превращается в Ладью, Ассасина или Коня.'
+            'Солдат (♟): 1 вперёд (2 с начальной), бьёт по диагонали и превращается в Ладью, Ассасина или Коня.'
           ],
           gSec3Title: '3. Золотое поле и Порталы',
           gSec3Items: [
@@ -1219,8 +1219,8 @@
           ok: 'موافق', cancel: 'إلغاء', infoTitle: 'معلومة', warnTitle: 'تنبيه', ruleViolation: 'مخالفة',
           alreadyMoved: 'لقد قمت بنقلتك بالفعل! اضغط «إنهاء».',
           mustMoveFirst: 'يجب التحرك قبل إنهاء الدور!', cannotPassInCheck: 'لا يمكن التمرير أثناء الكش!',
-          promoTitle: '🎖️ ترقية البيدق', promoText: 'اختر قطعة الترقية:',
-          logAiPromo: 'رقّى الذكاء الاصطناعي بيدقه إلى {piece}!', logPromo: 'تمت ترقية بيدق {color} إلى {piece}!',
+          promoTitle: '🎖️ ترقية الجندي', promoText: 'وصل جنديك إلى الصف الأخير! اختر قطعة:',
+          logAiPromo: 'قام الذكاء الاصطناعي بترقية جنديه إلى {piece}!', logPromo: 'تمت ترقية جندي {color} إلى {piece}!',
           tankDirTitle: '🛡️ إزاحة الدبابة', tankDirText: 'إلى أي عمود تنتقل الدبابة؟',
           tankLeft: '⬅️ يسار ({col})', tankRight: '➡️ يمين ({col})',
           logTankPush: 'أزاح {piece} ({color}) الدبابة إلى العمود {col}.',
@@ -1269,12 +1269,12 @@
           gSec2Title: '2. القطع الخاصة وحركتها',
           gSec2Items: [
             'المركز (♚): يتحرك مربعاً واحداً في أي اتجاه.',
-            'الرخ (♜): يتحرك أفقياً وعمودياً بلا حدود في نصفك، وحتى 3 مربعات في أرض الخصم.',
-            'الحصان (♞): قفزة حرف L المعتادة (2+1).',
+            'البرج (♜): يتحرك أفقياً وعمودياً بلا حدود في نصفك، وحتى 3 مربعات في أرض الخصم.',
+            'الكشاف (♞): قفزة حرف L المعتادة (2+1).',
             'القاتل (⚔): 1–2 أفقياً/عمودياً أو بلا حدود قطرياً. يأسر بالقفز فوق قطعة أو أكثر للخصم نحو المربع الفارغ خلفها.',
-            'الدبابة (⛨): 1–2 للأمام، 1 للخلف أو 1 جانبياً. تقدم بيدق أو دبابة صديقة لمربعها يزيحها جانبياً.',
+            'الدبابة (⛨): 1–2 للأمام، 1 للخلف أو 1 جانبياً. تقدم جندي أو دبابة صديقة لمربعها يزيحها جانبياً.',
             'المعالج (✚): مربع واحد بأي اتجاه (يقفز مربعين في أول نقلة). عند الأسر يمكنه إحياء قطعة المربع الذهبي.',
-            'البيدق (♟): يتقدم مربعاً (2 في البداية)، يأسر قطرياً ويترقى إلى رخ أو قاتل أو حصان.'
+            'الجندي (♟): يتقدم مربعاً (2 في البداية)، يأسر قطرياً ويترقى إلى برج أو قاتل أو كشاف.'
           ],
           gSec3Title: '3. المربع الذهبي والبوابات',
           gSec3Items: [
@@ -1303,8 +1303,8 @@
           ok: 'ตกลง', cancel: 'ยกเลิก', infoTitle: 'ข้อมูล', warnTitle: 'คำเตือน', ruleViolation: 'ผิดกติกา',
           alreadyMoved: 'คุณเดินหมากแล้ว! กด "จบตา" เพื่อสิ้นสุด',
           mustMoveFirst: 'ต้องเดินหมากก่อนจบตา!', cannotPassInCheck: 'ห้ามผ่านตาขณะถูกรุก!',
-          promoTitle: '🎖️ เลื่อนขั้นเบี้ย', promoText: 'เลือกหมากที่ต้องการเลื่อนขั้น:',
-          logAiPromo: 'AI เลื่อนขั้นเบี้ยเป็น {piece}!', logPromo: 'เบี้ย{color}เลื่อนขั้นเป็น {piece}!',
+          promoTitle: '🎖️ การเลื่อนขั้นทหาร', promoText: 'ทหารของคุณเดินถึงแถวสุดท้ายแล้ว! เลือกหมาก:',
+          logAiPromo: 'AI เลื่อนขั้นทหารเป็น {piece}!', logPromo: 'ทหารของ{color} เลื่อนขั้นเป็น {piece}!',
           tankDirTitle: '🛡️ ทิศทางรถถัง', tankDirText: 'เลื่อนรถถังไปคอลัมน์ใด?',
           tankLeft: '⬅️ ซ้าย ({col})', tankRight: '➡️ ขวา ({col})',
           logTankPush: '{piece}ของ{color}ดันรถถังไปคอลัมน์ {col}',
@@ -1353,12 +1353,12 @@
           gSec2Title: '2. หมากพิเศษและการเดิน',
           gSec2Items: [
             'ศูนย์กลาง (♚): เดินได้ 1 ช่องรอบตัวทุกทิศทาง',
-            'เรือ (♜): เดินแนวตรงได้ไม่จำกัดในแดนตัวเอง และสูงสุด 3 ช่องในแดนศัตรู',
-            'ม้า (♞): กระโดดรูปตัว L มาตรฐาน (2+1)',
+            'หอคอย (♜): เดินแนวตรงได้ไม่จำกัดในแดนตัวเอง และสูงสุด 3 ช่องในแดนศัตรู',
+            'หน่วยสอดแนม (♞): กระโดดรูปตัว L มาตรฐาน (2+1)',
             'มือสังหาร (⚔): แนวตรง 1–2 ช่อง หรือแนวทแยงไม่จำกัด กินโดยกระโดดข้ามหมากศัตรูที่เรียงต่อกันไปลงช่องว่างด้านหลัง',
             'รถถัง (⛨): เดินหน้า 1–2 ถอยหลัง 1 หรือออกข้าง 1 หากเบี้ยหรือรถถังฝ่ายเดียวกันเดินมาชนจะดันรถถังหลบออกด้านข้าง',
             'นักบวช (✚): เดิน 1 ช่องรอบตัว (ตาแรกกระโดด 2 ช่องได้) เมื่อกินหมากสามารถชุบชีวิตหมากในช่องทองคำลงกระดานได้',
-            'เบี้ย (♟): เดินหน้า 1 (ตาแรกได้ 2) กินเฉียงหน้า และเลื่อนขั้นเป็นเรือ มือสังหาร หรือม้า'
+            'ทหาร (♟): เดินหน้า 1 (ตาแรกได้ 2) กินเฉียงหน้า และเลื่อนขั้นเป็นเรือ มือสังหาร หรือม้า'
           ],
           gSec3Title: '3. ช่องทองคำและจุดวาร์ป',
           gSec3Items: [
@@ -1387,8 +1387,8 @@
           ok: 'OK', cancel: 'キャンセル', infoTitle: '情報', warnTitle: '警告', ruleViolation: 'ルール違反',
           alreadyMoved: '移動済みです！「終了」を押してください。',
           mustMoveFirst: '終了する前に移動を行ってください！', cannotPassInCheck: '王手中はパスできません！',
-          promoTitle: '🎖️ ポーン昇格', promoText: '昇格先の駒を選択してください：',
-          logAiPromo: 'AIがポーンを{piece}に昇格！', logPromo: '{color}のポーンが{piece}に昇格！',
+          promoTitle: '🎖️ ソルジャーの昇格', promoText: 'ソルジャーが最終段に到達しました！昇格先の駒を選択してください：',
+          logAiPromo: 'AIがソルジャーを{piece}に昇格させました！', logPromo: '{color}のソルジャーが{piece}に昇格しました！',
           tankDirTitle: '🛡️ タンク移動方向', tankDirText: 'タンクをどの列に移動しますか？',
           tankLeft: '⬅️ 左 ({col})', tankRight: '➡️ 右 ({col})',
           logTankPush: '{color}の{piece}がタンクを{col}列へ押し出しました。',
@@ -1437,12 +1437,12 @@
           gSec2Title: '2. 特殊駒の動き',
           gSec2Items: [
             'センター（♚）：全方向に1マス移動。詰まされないよう守ります。',
-            'ルーク（♜）：自陣では縦横無制限、敵陣では最大3マスまで直進できます。',
-            'ナイト（♞）：通常のL字ジャンプ（2+1）。',
+            'タワー（♜）：自陣では縦横無制限、敵陣では最大3マスまで直進できます。',
+            'スカウト（♞）：通常のL字ジャンプ（2+1）。',
             'アサシン（⚔）：縦横1〜2マス、斜め無制限。一直線に並んだ敵駒1個以上を飛び越え、直後の空きマスに着地してまとめて捕獲します。',
             'タンク（⛨）：前1〜2、後1、横1マス移動。味方のポーンかタンクが背後から進むと横の空き列へ押し出されます。',
             'ヒーラー（✚）：全方向1マス（初手のみ2マス跳躍可）。敵駒捕獲時、黄金マスの味方駒をその場へ蘇生できます。',
-            'ポーン（♟）：前1マス（初手2マス）、斜め前捕獲。最終列でルーク・アサシン・ナイトに昇格します。'
+            'ソルジャー（♟）：前1マス（初手2マス）、斜め前捕獲。最終列でルーク・アサシン・ナイトに昇格します。'
           ],
           gSec3Title: '3. 黄金マスとポータル',
           gSec3Items: [
@@ -1471,8 +1471,8 @@
           ok: '확인', cancel: '취소', infoTitle: '안내', warnTitle: '경고', ruleViolation: '규칙 위반',
           alreadyMoved: '이미 이동했습니다! «턴 종료»를 누르세요.',
           mustMoveFirst: '턴을 종료하기 전에 이동해야 합니다!', cannotPassInCheck: '체크 상태에서는 패스할 수 없습니다!',
-          promoTitle: '🎖️ 폰 승급', promoText: '승급할 기물을 선택하세요:',
-          logAiPromo: 'AI가 폰을 {piece}(으)로 승급!', logPromo: '{color} 폰이 {piece}(으)로 승급!',
+          promoTitle: '🎖️ 병사 승진', promoText: '병사가 마지막 줄에 도달했습니다! 승진할 기물을 선택하세요:',
+          logAiPromo: 'AI가 병사를 {piece}(으)로 승진시켰습니다!', logPromo: '{color} 병사가 {piece}(으)로 승진했습니다!',
           tankDirTitle: '🛡️ 탱크 방향', tankDirText: '탱크를 어느 열로 이동시킬까요?',
           tankLeft: '⬅️ 왼쪽 ({col})', tankRight: '➡️ 오른쪽 ({col})',
           logTankPush: '{color} {piece}이(가) 탱크를 {col}열로 밀었습니다.',
@@ -1521,12 +1521,12 @@
           gSec2Title: '2. 특수 기물 이동법',
           gSec2Items: [
             '센터(♚): 모든 방향으로 1칸 이동합니다.',
-            '룩(♜): 아군 진영에서는 상하좌우 무제한, 적 진영에서는 최대 3칸까지 이동합니다.',
-            '나이트(♞): 일반 체스와 동일한 L자 점프(2+1)입니다.',
+            '타워(♜): 아군 진영에서는 상하좌우 무제한, 적 진영에서는 최대 3칸까지 이동합니다.',
+            '정찰병(♞): 일반 체스와 동일한 L자 점프(2+1)입니다.',
             '암살자(⚔): 상하좌우 1~2칸, 대각선 무제한 이동. 일직선상의 적 기물 1개 이상을 뛰어넘어 바로 뒤 빈 칸에 착지하며 모두 포획합니다.',
             '탱크(⛨): 전진 1~2칸, 후진 1칸, 좌우 1칸 이동. 아군 폰이나 탱크가 뒤에서 진입하면 옆 빈 열로 밀려납니다.',
             '치유사(✚): 전 방향 1칸 이동(첫 수에만 2칸 점프 가능). 적 기물 포획 시 황금 칸의 기물을 그 자리에 부활시킬 수 있습니다.',
-            '폰(♟): 전진 1칸(첫 수 2칸), 대각선 앞 포획, 마지막 줄에서 룩·암살자·나이트로 승급합니다.'
+            '병사(♟): 전진 1칸(첫 수 2칸), 대각선 앞 포획, 마지막 줄에서 룩·암살자·나이트로 승급합니다.'
           ],
           gSec3Title: '3. 황금 칸과 포털',
           gSec3Items: [
@@ -1555,8 +1555,8 @@
           ok: '确定', cancel: '取消', infoTitle: '提示', warnTitle: '警告', ruleViolation: '违反规则',
           alreadyMoved: '本回合已走棋！请点击“结束回合”。',
           mustMoveFirst: '结束回合前必须先走棋！', cannotPassInCheck: '被将军时不能跳过回合！',
-          promoTitle: '🎖️ 兵的升变', promoText: '选择升变棋子：',
-          logAiPromo: 'AI 将兵升变为{piece}！', logPromo: '{color}的兵升变为{piece}！',
+          promoTitle: '🎖️ 士兵升变', promoText: '你的士兵已抵达底线！请选择要升变的棋子：',
+          logAiPromo: 'AI 将士兵升变为{piece}！', logPromo: '{color}士兵升变为{piece}！',
           tankDirTitle: '🛡️ 坦克侧移', tankDirText: '坦克移入哪一列？',
           tankLeft: '⬅️ 向左 ({col})', tankRight: '➡️ 向右 ({col})',
           logTankPush: '{color}{piece}将坦克推至{col}列。',
@@ -1605,12 +1605,12 @@
           gSec2Title: '2. 特殊棋子走法',
           gSec2Items: [
             '中心（♚）：向任意方向移动 1 格，需避免被将死。',
-            '车（♜）：在己方半场横竖不限格数，进入敌方半场最多走 3 格。',
-            '马（♞）：标准日字跳步（2+1）。',
+            '塔（♜）：在己方半场横竖不限格数，进入敌方半场最多走 3 格。',
+            '侦察兵（♞）：标准日字跳步（2+1）。',
             '刺客（⚔）：横竖 1–2 格，斜向不限格数。可跳过直线上 1 枚或多枚连续敌子落至其后空位并全部吃掉。',
             '坦克（⛨）：前进 1–2 格、后退 1 格或左右 1 格。己方兵或坦克前进至其格子时可将其推向旁侧空列。',
             '治疗师（✚）：任意方向 1 格（首步可跳 2 格）。吃子时可将黄金格中的己方棋子复活至吃子位置。',
-            '兵（♟）：前进 1 格（首步可 2 格），斜前吃子，到达底线可升变为车、刺客或马。'
+            '士兵（♟）：前进 1 格（首步可 2 格），斜前吃子，到达底线可升变为车、刺客或马。'
           ],
           gSec3Title: '3. 黄金格与传送门',
           gSec3Items: [
@@ -1639,8 +1639,8 @@
           ok: '確定', cancel: '取消', infoTitle: '提示', warnTitle: '警告', ruleViolation: '違反規則',
           alreadyMoved: '本回合已走棋！請點擊「結束回合」。',
           mustMoveFirst: '結束回合前必須先走棋！', cannotPassInCheck: '被將軍時不能跳過回合！',
-          promoTitle: '🎖️ 兵的升變', promoText: '選擇升變棋子：',
-          logAiPromo: 'AI 將兵升變為{piece}！', logPromo: '{color}的兵升變為{piece}！',
+          promoTitle: '🎖️ 士兵升變', promoText: '你的士兵已抵達底線！請選擇要升變的棋子：',
+          logAiPromo: 'AI 將士兵升變為{piece}！', logPromo: '{color}士兵升變為{piece}！',
           tankDirTitle: '🛡️ 坦克側移', tankDirText: '坦克移入哪一列？',
           tankLeft: '⬅️ 向左 ({col})', tankRight: '➡️ 向右 ({col})',
           logTankPush: '{color}{piece}將坦克推至{col}列。',
@@ -1689,12 +1689,12 @@
           gSec2Title: '2. 特殊棋子走法',
           gSec2Items: [
             '中心（♚）：向任意方向移動 1 格，需避免被將死。',
-            '車（♜）：在己方半場橫豎不限格數，進入敵方半場最多走 3 格。',
-            '馬（♞）：標準日字跳步（2+1）。',
+            '塔（♜）：在己方半場橫豎不限格數，進入敵方半場最多走 3 格。',
+            '偵察兵（♞）：標準日字跳步（2+1）。',
             '刺客（⚔）：橫豎 1–2 格，斜向不限格數。可跳過直線上 1 枚或多枚連續敵子落至其後空位並全部吃掉。',
             '坦克（⛨）：前進 1–2 格、後退 1 格或左右 1 格。己方兵或坦克前進至其格子時可將其推向旁側空列。',
             '治療師（✚）：任意方向 1 格（首步可跳 2 格）。吃子時可將黃金格中的己方棋子復活至吃子位置。',
-            '兵（♟）：前進 1 格（首步可 2 格），斜前吃子，到達底線可升變為車、刺客或馬。'
+            '士兵（♟）：前進 1 格（首步可 2 格），斜前吃子，到達底線可升變為車、刺客或馬。'
           ],
           gSec3Title: '3. 黃金格與傳送門',
           gSec3Items: [
