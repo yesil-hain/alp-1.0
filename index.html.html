@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>7x8 Chess Variant Prototype</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #2c3e50; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 15px; min-height: 100vh; }
+    h1 { margin-bottom: 6px; font-size: 22px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    
+    .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
+    #status { font-weight: bold; font-size: 17px; color: #f39c12; }
+    #check-alert { color: #e74c3c; font-weight: bold; font-size: 14px; display: none; animation: blink 1s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .pass-info { font-size: 12px; color: #bdc3c7; background: #1a252f; padding: 5px 10px; border-radius: 4px; border: 1px solid #34495e; }
+    
+    .controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    .btn { padding: 6px 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-pass { background: #e67e22; color: white; }
+    .btn-pass:hover { background: #d35400; }
+    .btn-portal { background: #2980b9; color: white; }
+    .btn-portal:hover { background: #3498db; }
+    .btn-portal:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.5; }
+    .btn-finish { background: #27ae60; color: white; }
+    .btn-finish:hover { background: #2ecc71; }
+    .btn-finish:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.5; }
+    .btn-draw { background: #d35400; color: white; }
+    .btn-draw:hover { background: #e67e22; }
+    .btn-draw:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.5; }
+    .btn-restart { background: #8e44ad; color: white; }
+    .btn-restart:hover { background: #9b59b6; }
+
+    /* Graveyard / Captured Pieces Panel */
+    .graveyard-panel {
+      display: flex; gap: 20px; background: #1a252f; padding: 6px 16px; border-radius: 6px; margin-bottom: 10px;
+      border: 1px solid #34495e; font-size: 13px; width: 100%; max-width: 620px; justify-content: space-between; align-items: center;
+    }
+    .graveyard-section { display: flex; align-items: center; gap: 6px; }
+    .graveyard-title { font-weight: bold; font-size: 12px; color: #f39c12; }
+    .graveyard-list { display: flex; gap: 4px; min-height: 28px; align-items: center; }
+    .graveyard-item { font-size: 20px; line-height: 1; user-select: none; }
+
+    .game-container {
+      display: flex; flex-direction: column; align-items: center;
+      background: #34495e; padding: 20px 75px; border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; margin-top: 5px;
+    }
+
+    .main-layout { display: flex; flex-direction: column; align-items: center; position: relative; }
+    .board-container-outer { display: flex; flex-direction: column; align-items: flex-end; }
+    .board-with-left-coords { display: flex; flex-direction: row; align-items: flex-start; }
+    
+    .left-coords { display: flex; flex-direction: column; justify-content: space-around; height: 480px; padding-right: 10px; font-weight: bold; color: #f1c40f; font-size: 15px; }
+    .left-coords span { height: 60px; display: flex; align-items: center; justify-content: center; }
+    .bottom-coords { display: flex; flex-direction: row; justify-content: space-around; width: 420px; padding-top: 10px; font-weight: bold; color: #f1c40f; font-size: 15px; }
+    .bottom-coords span { width: 60px; text-align: center; }
+
+    .board-wrapper {
+      display: flex; flex-direction: column;
+      border: 3px solid #1a252f;
+      background: #1a252f;
+      border-radius: 4px;
+      position: relative;
+    }
+    .board-row { display: flex; position: relative; }
+    
+    .cell {
+      width: 60px; height: 60px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; font-weight: bold; cursor: pointer;
+      user-select: none; position: relative;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+    
+    .light { background-color: #e0c9a6; color: #333; }
+    .dark { background-color: #4d8b48; color: #fff; }
+    
+    .selected { outline: 4px solid #f1c40f; z-index: 2; outline-offset: -4px; }
+    .in-check-cell { background-color: #e74c3c !important; }
+    
+    .valid-move::after {
+      content: ''; width: 18px; height: 18px;
+      background-color: rgba(241, 196, 15, 0.9);
+      border-radius: 50%; position: absolute; pointer-events: none;
+      box-shadow: 0 0 6px #000;
+    }
+
+    #portal-svg {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 8;
+    }
+    
+    .golden-square-attached {
+      position: absolute; width: 60px; height: 60px;
+      background-color: #daa520; border: 2px solid #1a252f; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; font-weight: bold; z-index: 10; user-select: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      transition: top 0.3s ease;
+    }
+    .golden-black { left: -68px; }
+    .golden-white { right: -68px; }
+
+    .piece-white { color: #ffffff !important; text-shadow: 0 0 4px #000, 0 0 2px #000; }
+    .piece-black { color: #111111 !important; text-shadow: 0 0 4px #fff, 0 0 2px #fff; }
+
+    .logs { margin-top: 10px; width: 100%; max-width: 620px; height: 95px; background: #1a252f; border-radius: 8px; padding: 8px; overflow-y: auto; font-size: 12px; font-family: monospace; line-height: 1.4; border: 1px solid #455a64; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-box {
+      background: #2c3e50; padding: 22px; border-radius: 12px; border: 2px solid #f1c40f; text-align: center; max-width: 460px; width: 92%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    }
+    .modal-box h3 { margin-bottom: 10px; color: #f1c40f; font-size: 19px; }
+    .modal-box p { margin-bottom: 16px; font-size: 14px; line-height: 1.4; color: #ecf0f1; }
+    .modal-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; text-align: left; background: #1a252f; padding: 14px; border-radius: 8px; }
+    .option-group { display: flex; flex-direction: column; gap: 6px; }
+    .option-group label { font-size: 13px; font-weight: bold; color: #f39c12; }
+    .radio-set { display: flex; gap: 15px; font-size: 13px; }
+    .radio-set label { font-weight: normal; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .modal-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .btn-modal-ok { background: #27ae60; color: white; padding: 8px 18px; font-size: 13px; }
+    .btn-modal-ok:hover { background: #2ecc71; }
+    .btn-cancel { background: #c0392b; color: white; padding: 8px 18px; font-size: 13px; }
+    .btn-cancel:hover { background: #e74c3c; }
+
+    /* Statistics & Result Screen Styles */
+    .result-box h2 { font-size: 22px; color: #f1c40f; margin-bottom: 6px; }
+    .result-sub { font-size: 14px; color: #bdc3c7; margin-bottom: 15px; }
+    .stats-card {
+      background: #1a252f; border: 1px solid #34495e; border-radius: 8px;
+      padding: 12px 16px; margin-bottom: 16px; text-align: left; font-size: 13px;
+    }
+    .stats-card h4 { color: #f39c12; margin-bottom: 8px; border-bottom: 1px solid #34495e; padding-bottom: 4px; font-size: 14px; }
+    .stat-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.08); }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row span { color: #bdc3c7; }
+    .stat-row b { color: #fff; }
+  </style>
+</head>
+<body>
+
+  <h1>7x8 Chess Variant</h1>
+  
+  <div class="status-bar">
+    <div id="status">Turn: WHITE</div>
+    <div id="check-alert">⚠️ CENTER IN CHECK!</div>
+    <div class="pass-info" id="pass-info">Passes - W: 0/3 | B: 0/3</div>
+    
+    <div class="controls">
+      <button class="btn btn-portal" id="btn-portal" onclick="window.promptUsePortal()">🌀 Portal [B]</button>
+      <button class="btn btn-finish" id="btn-finish" onclick="window.finishTurn()">✅ End Turn [Space]</button>
+      <button class="btn btn-draw" id="btn-draw" onclick="window.offerDraw()">🤝 Offer Draw</button>
+      <button class="btn btn-pass" onclick="window.passTurn()">Pass [P]</button>
+      <button class="btn btn-restart" onclick="window.openSettingsModal()">🔄 Settings [R]</button>
+    </div>
+  </div>
+
+  <div class="graveyard-panel">
+    <div class="graveyard-section">
+      <span class="graveyard-title">⚪ WHITE CAPTURED:</span>
+      <div class="graveyard-list" id="graveyard-white"></div>
+    </div>
+    <div class="graveyard-section">
+      <span class="graveyard-title">🖤 BLACK CAPTURED:</span>
+      <div class="graveyard-list" id="graveyard-black"></div>
+    </div>
+  </div>
+
+  <div class="game-container">
+    <div class="main-layout">
+      <div class="board-with-left-coords">
+        <div class="left-coords" id="left-coords"></div>
+        <div class="board-container-outer">
+          <div class="board-wrapper" id="board-container">
+            <svg id="portal-svg"></svg>
+            <div id="board"></div>
+            <div class="golden-square-attached golden-black" id="golden-black-box"></div>
+            <div class="golden-square-attached golden-white" id="golden-white-box"></div>
+          </div>
+          <div class="bottom-coords" id="bottom-coords"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logs" id="logs">> Game Started...</div>
+
+  <!-- General Alert Modal -->
+  <div class="modal-overlay" id="customModal" style="display: none;">
+    <div class="modal-box">
+      <h3 id="modalTitle">Title</h3>
+      <p id="modalText">Message</p>
+      <div class="modal-btns" id="modalBtns"></div>
+    </div>
+  </div>
+
+  <!-- Result & Statistics Modal -->
+  <div class="modal-overlay" id="resultModal" style="display: none;">
+    <div class="modal-box result-box">
+      <h2 id="resultTitle">🎉 YOU WON!</h2>
+      <div id="resultSub" class="result-sub">Game Completed</div>
+      
+      <div class="stats-card">
+        <h4>📊 Match Statistics</h4>
+        <div class="stat-row"><span>Game Mode:</span><b id="statMode">-</b></div>
+        <div class="stat-row"><span>End Reason:</span><b id="statReason">-</b></div>
+        <div class="stat-row"><span>Turns Played:</span><b id="statTurns">0</b></div>
+        <div class="stat-row"><span>White Pieces Lost:</span><b id="statWhiteCap">0</b></div>
+        <div class="stat-row"><span>Black Pieces Lost:</span><b id="statBlackCap">0</b></div>
+        <div class="stat-row"><span>Passes Used (W / B):</span><b id="statPasses">0 / 0</b></div>
+      </div>
+
+      <div class="modal-btns">
+        <button class="btn btn-modal-ok" onclick="window.restartCurrentGame()">🔄 Play Again</button>
+        <button class="btn btn-restart" onclick="window.openSettingsModal()">🏠 Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+      <h3>Game Setup</h3>
+      <p>Please select your game mode and side:</p>
+      
+      <div class="modal-options">
+        <div class="option-group">
+          <label>Game Mode:</label>
+          <div class="radio-set">
+            <label><input type="radio" name="gameMode" value="pvp" checked> 👥 Two Players (Same Device)</label>
+            <label><input type="radio" name="gameMode" value="pve"> 🤖 vs. AI</label>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <label>Your Side (Color):</label>
+          <div class="radio-set">
+            <label><input type="radio" name="userColor" value="white" checked> ⚪ White (Moves First)</label>
+            <label><input type="radio" name="userColor" value="black"> 🖤 Black</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-btns">
+        <button class="btn btn-modal-ok" onclick="window.applySettingsAndStart()">Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const ROWS = 8;
+      const COLS = 7;
+
+      let gameMode = 'pvp';
+      let userColor = 'white';
+      let aiColor = 'black';
+
+      let turn = 'white';
+      let turnCount = 1;
+      let selectedCell = null;
+      let goldenSquare = { white: null, black: null };
+      let capturedPieces = { white: [], black: [] };
+      let passes = { white: 0, black: 0 };
+      let healerMoved = { white: false, black: false };
+      let isGameOver = false;
+
+      let portalUsedThisTurn = false;
+      let normalMoveDoneThisTurn = false;
+      let aiLastMoves = [];
+
+      const PORTALS = {
+        white: [{ r: 7, c: 3 }, { r: 7, c: 4 }],
+        black: [{ r: 0, c: 3 }, { r: 0, c: 2 }]
+      };
+
+      const SYMBOLS = {
+        'K': '\u265C',
+        'S': '\u2694',
+        'G': '\u265E',
+        'M': '\u265A',
+        'H': '\u271A',
+        'P': '\u265F',
+        'T': '\u26E8'
+      };
+
+      const PIECE_NAMES = {
+        'K': 'Rook',
+        'S': 'Assassin',
+        'G': 'Knight',
+        'M': 'Center',
+        'H': 'Healer',
+        'P': 'Pawn',
+        'T': 'Tank'
+      };
+
+      const COL_NAMES = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+      const INITIAL_BOARD = [
+        ['bK', 'bH', 'bG', 'bM', 'bG', 'bS', 'bK'],
+        ['bP', 'bP', 'bT', 'bT', 'bT', 'bP', 'bP'],
+        ['.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.'],
+        ['.', '.', '.', '.', '.', '.', '.'],
+        ['wP', 'wP', 'wT', 'wT', 'wT', 'wP', 'wP'],
+        ['wK', 'wS', 'wG', 'wM', 'wG', 'wH', 'wK']
+      ];
+
+      let boardState = INITIAL_BOARD.map(row => [...row]);
+
+      function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
+      function cloneBoard(b) { return b.map(row => [...row]); }
+
+      function log(msg) {
+        const logs = document.getElementById('logs');
+        if (logs) {
+          logs.innerHTML += `<div>> ${msg}</div>`;
+          logs.scrollTop = logs.scrollHeight;
+        }
+      }
+
+      function showAlert(title, text, callback) {
+        const modal = document.getElementById('customModal');
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalText').innerText = text;
+        const btns = document.getElementById('modalBtns');
+        btns.innerHTML = '';
+        
+        const okBtn = document.createElement('button');
+        okBtn.className = 'btn btn-modal-ok';
+        okBtn.innerText = 'OK';
+        okBtn.onclick = () => {
+          modal.style.display = 'none';
+          if (callback) callback();
+        };
+        btns.appendChild(okBtn);
+        modal.style.display = 'flex';
+      }
+
+      function isOpponentTerritory(color, row) {
+        return color === 'w' ? row <= 3 : row >= 4;
+      }
+
+      function findMerkez(color, board) {
+        const target = color[0] + 'M';
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (board[r][c] === target) return { r, c };
+          }
+        }
+        return null;
+      }
+
+      function checkInsufficientMaterial() {
+        let pieceCount = 0;
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (boardState[r][c] && boardState[r][c] !== '.') {
+              pieceCount++;
+            }
+          }
+        }
+        if (pieceCount === 2) {
+          endGame("Insufficient Material! Only the Centers remain on the board.", "draw");
+          return true;
+        }
+        return false;
+      }
+
+      // Returns valid sideways shift columns for Pawn -> Tank or Tank -> Tank push mechanic
+      function getTankPushOptions(sr, sc, tr, tc, board) {
+        const piece = board[sr][sc];
+        if (!piece || piece === '.') return [];
+        const type = piece[1];
+        const color = piece[0];
+
+        // Only a Pawn or Tank can push a friendly Tank directly ahead (Pawn -> Pawn is not allowed)
+        if (type !== 'P' && type !== 'T') return [];
+
+        const dir = color === 'w' ? -1 : 1;
+        // Must be directly adjacent (1 square straight ahead)
+        if (tr !== sr + dir || tc !== sc) return [];
+
+        const target = board[tr][tc];
+        if (target !== color + 'T') return [];
+
+        const leftC = tc - 1;
+        const rightC = tc + 1;
+        const canLeft = inBounds(tr, leftC) && board[tr][leftC] === '.';
+        const canRight = inBounds(tr, rightC) && board[tr][rightC] === '.';
+
+        if (!canLeft && !canRight) return [];
+
+        function hasFriendlyTankInCol(col) {
+          for (let r = 0; r < ROWS; r++) {
+            if (board[r][col] === color + 'T') return true;
+          }
+          return false;
+        }
+
+        let candidates = [];
+        if (canLeft && canRight) {
+          const leftHasTank = hasFriendlyTankInCol(leftC);
+          const rightHasTank = hasFriendlyTankInCol(rightC);
+
+          // Priority goes to a file without a friendly Tank; if both have or neither has, player chooses
+          if (!leftHasTank && rightHasTank) {
+            candidates = [leftC];
+          } else if (leftHasTank && !rightHasTank) {
+            candidates = [rightC];
+          } else {
+            candidates = [leftC, rightC];
+          }
+        } else if (canLeft) {
+          candidates = [leftC];
+        } else {
+          candidates = [rightC];
+        }
+
+        // Center (King) safety check
+        const validOptions = [];
+        candidates.forEach(sideC => {
+          const tempBoard = cloneBoard(board);
+          tempBoard[tr][sideC] = color + 'T';
+          tempBoard[tr][tc] = piece;
+          tempBoard[sr][sc] = '.';
+          if (!isKingInCheck(color, tempBoard)) {
+            validOptions.push(sideC);
+          }
+        });
+
+        return validOptions;
+      }
+
+      function getAssassinMoveDetails(sr, sc, tr, tc, board) {
+        const piece = board[sr][sc];
+        if (!piece || piece[1] !== 'S') return null;
+        const color = piece[0];
+        const oppColor = color === 'w' ? 'b' : 'w';
+
+        const dr = tr - sr, dc = tc - sc;
+        if (dr === 0 && dc === 0) return null;
+
+        const absDr = Math.abs(dr), absDc = Math.abs(dc);
+        const isOrthogonal = (dr === 0 && absDc > 0) || (dc === 0 && absDr > 0);
+        const isDiagonal = (absDr === absDc && absDr > 0);
+        if (!isOrthogonal && !isDiagonal) return null;
+
+        const stepR = dr === 0 ? 0 : dr / absDr;
+        const stepC = dc === 0 ? 0 : dc / absDc;
+
+        if (board[tr][tc] === '.') {
+          let currR = sr + stepR, currC = sc + stepC;
+          let emptyCount = 0, blocked = false;
+          while (currR !== tr || currC !== tc) {
+            if (board[currR][currC] !== '.') { blocked = true; break; }
+            emptyCount++;
+            currR += stepR; currC += stepC;
+          }
+          if (!blocked) {
+            emptyCount++;
+            if (isOrthogonal && emptyCount <= 2) return { type: 'move', captured: [] };
+            if (isDiagonal) return { type: 'move', captured: [] };
+          }
+        }
+
+        if (board[tr][tc] !== '.') return null;
+
+        let currR = sr + stepR, currC = sc + stepC, emptyBefore = 0;
+        while (inBounds(currR, currC) && board[currR][currC] === '.') {
+          emptyBefore++;
+          currR += stepR; currC += stepC;
+        }
+
+        if (isOrthogonal && emptyBefore > 1) return null;
+
+        const captured = [];
+        while (inBounds(currR, currC) && board[currR][currC] !== '.' && board[currR][currC][0] === oppColor) {
+          if (board[currR][currC][1] === 'M') return null;
+          captured.push({ r: currR, c: currC, piece: board[currR][currC] });
+          currR += stepR; currC += stepC;
+        }
+
+        if (captured.length > 0 && currR === tr && currC === tc) {
+          return { type: 'capture', captured: captured };
+        }
+        return null;
+      }
+
+      function isPseudoLegalMove(sr, sc, tr, tc, board) {
+        const piece = board[sr][sc];
+        if (!piece || piece === '.') return false;
+        const target = board[tr][tc];
+        if (target !== '.' && target[0] === piece[0]) return false;
+
+        const type = piece[1], color = piece[0];
+        const dr = tr - sr, dc = tc - sc;
+        const absDr = Math.abs(dr), absDc = Math.abs(dc);
+        const dist = Math.max(absDr, absDc);
+
+        if (type === 'K') {
+          if (sr !== tr && sc !== tc) return false;
+          if (isOpponentTerritory(color, tr) && dist > 3) return false;
+          const stepR = dr === 0 ? 0 : dr / absDr;
+          const stepC = dc === 0 ? 0 : dc / absDc;
+          let cr = sr + stepR, cc = sc + stepC;
+          while (cr !== tr || cc !== tc) {
+            if (board[cr][cc] !== '.') return false;
+            cr += stepR; cc += stepC;
+          }
+          return true;
+        }
+
+        if (type === 'G') return (absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2);
+        if (type === 'M') return absDr <= 1 && absDc <= 1;
+
+        if (type === 'H') {
+          if (absDr <= 1 && absDc <= 1) return true;
+          const colorKey = color === 'w' ? 'white' : 'black';
+          if (!healerMoved[colorKey]) {
+            const isOrthogonal = (dr === 0 && absDc === 2) || (dc === 0 && absDr === 2);
+            const isDiagonal = (absDr === 2 && absDc === 2);
+            if (isOrthogonal || isDiagonal) {
+              const midR = sr + dr / 2, midC = sc + dc / 2;
+              if (board[midR][midC] === '.') return true;
+            }
+          }
+          return false;
+        }
+
+        if (type === 'P') {
+          const dir = color === 'w' ? -1 : 1;
+          const startRow = color === 'w' ? 6 : 1;
+          if (dc === 0 && target === '.') {
+            if (dr === dir) return true;
+            if (sr === startRow && dr === 2 * dir && board[sr + dir][sc] === '.') return true;
+          }
+          if (absDc === 1 && dr === dir && target !== '.' && target[0] !== color) return true;
+          return false;
+        }
+
+        if (type === 'T') {
+          const dir = color === 'w' ? -1 : 1;
+          if (dc === 0 && dr === dir) return true;
+          if (dc === 0 && dr === 2 * dir && board[sr + dir][sc] === '.') return true;
+          if (dc === 0 && dr === -dir && target === '.') return true;
+          if (dr === 0 && absDc === 1 && target === '.') return true;
+          return false;
+        }
+
+        if (type === 'S') return getAssassinMoveDetails(sr, sc, tr, tc, board) !== null;
+        return false;
+      }
+
+      function isSquareAttacked(targetR, targetC, defenderColor, board) {
+        const attackerColor = defenderColor === 'w' ? 'b' : 'w';
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (board[r][c] !== '.' && board[r][c][0] === attackerColor) {
+              const pieceType = board[r][c][1];
+              if (pieceType === 'S') {
+                const dr = targetR - r, dc = targetC - c;
+                if (dr === 0 && dc === 0) continue;
+                const absDr = Math.abs(dr), absDc = Math.abs(dc);
+                const isOrthogonal = (dr === 0 && absDc > 0) || (dc === 0 && absDr > 0);
+                const isDiagonal = (absDr === absDc && absDr > 0);
+                if (!isOrthogonal && !isDiagonal) continue;
+
+                const stepR = dr === 0 ? 0 : dr / absDr;
+                const stepC = dc === 0 ? 0 : dc / absDc;
+                let currR = r + stepR, currC = c + stepC;
+                let emptyBefore = 0;
+
+                while (inBounds(currR, currC) && board[currR][currC] === '.') {
+                  emptyBefore++;
+                  currR += stepR; currC += stepC;
+                }
+                if (isOrthogonal && emptyBefore > 1) continue;
+
+                let foundTargetInChain = false;
+                while (inBounds(currR, currC) && board[currR][currC] !== '.' && board[currR][currC][0] === defenderColor) {
+                  if (currR === targetR && currC === targetC) foundTargetInChain = true;
+                  currR += stepR; currC += stepC;
+                }
+                if (foundTargetInChain && inBounds(currR, currC) && board[currR][currC] === '.') return true;
+              } else {
+                if (isPseudoLegalMove(r, c, targetR, targetC, board)) return true;
+              }
+            }
+          }
+        }
+        return false;
+      }
+
+      function isKingInCheck(color, board) {
+        const mPos = findMerkez(color, board);
+        if (!mPos) return false;
+        return isSquareAttacked(mPos.r, mPos.c, color, board);
+      }
+
+      function isLegalMove(sr, sc, tr, tc, board) {
+        const piece = board[sr][sc];
+        if (!piece || piece[0] !== turn[0]) return false;
+        if (board[tr][tc] !== '.' && board[tr][tc][1] === 'M') return false;
+
+        // Special Tank Push / Sideways Shift Move
+        if ((piece[1] === 'P' || piece[1] === 'T') && board[tr][tc] === piece[0] + 'T') {
+          return getTankPushOptions(sr, sc, tr, tc, board).length > 0;
+        }
+
+        if (!isPseudoLegalMove(sr, sc, tr, tc, board)) return false;
+
+        const tempBoard = cloneBoard(board);
+        if (piece[1] === 'S') {
+          const details = getAssassinMoveDetails(sr, sc, tr, tc, board);
+          if (details && details.type === 'capture') {
+            details.captured.forEach(item => tempBoard[item.r][item.c] = '.');
+          }
+        }
+        tempBoard[tr][tc] = tempBoard[sr][sc];
+        tempBoard[sr][sc] = '.';
+        return !isKingInCheck(piece[0], tempBoard);
+      }
+
+      function hasAnyLegalMoves(color, board) {
+        for (let sr = 0; sr < ROWS; sr++) {
+          for (let sc = 0; sc < COLS; sc++) {
+            if (board[sr][sc] !== '.' && board[sr][sc][0] === color) {
+              for (let tr = 0; tr < ROWS; tr++) {
+                for (let tc = 0; tc < COLS; tc++) {
+                  if (isLegalMove(sr, sc, tr, tc, board)) return true;
+                }
+              }
+            }
+          }
+        }
+        return false;
+      }
+
+      function getEffectiveOrientation() {
+        return gameMode === 'pvp' ? turn : userColor;
+      }
+
+      function createBoard() {
+        const boardEl = document.getElementById('board');
+        if (!boardEl) return;
+        boardEl.innerHTML = '';
+        
+        const inCheck = isKingInCheck(turn[0], boardState);
+        const alertEl = document.getElementById('check-alert');
+        if (alertEl) alertEl.style.display = inCheck ? 'inline' : 'none';
+
+        const mPos = findMerkez(turn[0], boardState);
+        const orientation = getEffectiveOrientation();
+        const isWhiteView = (orientation === 'white');
+
+        const leftCoords = document.getElementById('left-coords');
+        const bottomCoords = document.getElementById('bottom-coords');
+        
+        if (leftCoords && bottomCoords) {
+          leftCoords.innerHTML = '';
+          bottomCoords.innerHTML = '';
+
+          const rowLabels = isWhiteView ? ['8','7','6','5','4','3','2','1'] : ['1','2','3','4','5','6','7','8'];
+          const colLabels = isWhiteView ? ['A','B','C','D','E','F','G'] : ['G','F','E','D','C','B','A'];
+
+          rowLabels.forEach(lbl => {
+            const sp = document.createElement('span');
+            sp.innerText = lbl;
+            leftCoords.appendChild(sp);
+          });
+
+          colLabels.forEach(lbl => {
+            const sp = document.createElement('span');
+            sp.innerText = lbl;
+            bottomCoords.appendChild(sp);
+          });
+        }
+
+        const rowOrder = isWhiteView ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
+        const colOrder = isWhiteView ? [0,1,2,3,4,5,6] : [6,5,4,3,2,1,0];
+
+        rowOrder.forEach(r => {
+          const rowEl = document.createElement('div');
+          rowEl.className = 'board-row';
+
+          colOrder.forEach(c => {
+            const cellEl = document.createElement('div');
+            cellEl.className = `cell ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+            cellEl.dataset.row = r;
+            cellEl.dataset.col = c;
+            
+            if (inCheck && mPos && mPos.r === r && mPos.c === c) {
+              cellEl.classList.add('in-check-cell');
+            }
+
+            const piece = boardState[r][c];
+            if (piece && piece !== '.') {
+              cellEl.innerText = SYMBOLS[piece[1]] || piece[1];
+              cellEl.className += (piece[0] === 'w' ? ' piece-white' : ' piece-black');
+            }
+            
+            cellEl.addEventListener('click', () => onCellClick(r, c));
+            rowEl.appendChild(cellEl);
+          });
+
+          boardEl.appendChild(rowEl);
+        });
+        
+        const blackVisualRow = isWhiteView ? 3 : (7 - 3);
+        const whiteVisualRow = isWhiteView ? 4 : (7 - 4);
+
+        const blackBox = document.getElementById('golden-black-box');
+        const whiteBox = document.getElementById('golden-white-box');
+
+        if (blackBox) blackBox.style.top = (blackVisualRow * 60) + 'px';
+        if (whiteBox) whiteBox.style.top = (whiteVisualRow * 60) + 'px';
+
+        renderGoldenPiece(blackBox, 'black');
+        renderGoldenPiece(whiteBox, 'white');
+
+        renderGraveyard();
+
+        const passInfoEl = document.getElementById('pass-info');
+        if (passInfoEl) {
+          passInfoEl.innerText = `Passes - W: ${passes.white}/3 | B: ${passes.black}/3`;
+        }
+
+        const btnPortal = document.getElementById('btn-portal');
+        if (btnPortal) btnPortal.disabled = portalUsedThisTurn || isGameOver;
+
+        const btnFinish = document.getElementById('btn-finish');
+        if (btnFinish) btnFinish.disabled = isGameOver;
+
+        const btnDraw = document.getElementById('btn-draw');
+        if (btnDraw) btnDraw.disabled = isGameOver;
+
+        setTimeout(drawPortals, 20);
+      }
+
+      function drawPortals() {
+        const svg = document.getElementById('portal-svg');
+        if (!svg) return;
+        svg.innerHTML = '';
+        
+        const boardWrapper = document.getElementById('board-container');
+        if (!boardWrapper) return;
+        const bRect = boardWrapper.getBoundingClientRect();
+        if (bRect.width === 0 || bRect.height === 0) return;
+
+        function getCellCenter(r, c) {
+          const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+          if (!cell) return null;
+          const cRect = cell.getBoundingClientRect();
+          return {
+            x: cRect.left - bRect.left + cRect.width / 2,
+            y: cRect.top - bRect.top + cRect.height / 2
+          };
+        }
+
+        const portalConfigs = [
+          { portal: PORTALS.white, color: '#3498db' },
+          { portal: PORTALS.black, color: '#e74c3c' }
+        ];
+
+        portalConfigs.forEach(config => {
+          const p1 = getCellCenter(config.portal[0].r, config.portal[0].c);
+          const p2 = getCellCenter(config.portal[1].r, config.portal[1].c);
+          if (!p1 || !p2) return;
+
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const cx = (p1.x + p2.x) / 2 - dy * 0.35;
+          const cy = (p1.y + p2.y) / 2 + dx * 0.35;
+
+          path.setAttribute('d', `M ${p1.x} ${p1.y} Q ${cx} ${cy} ${p2.x} ${p2.y}`);
+          path.setAttribute('stroke', config.color);
+          path.setAttribute('stroke-width', '4');
+          path.setAttribute('stroke-dasharray', '6,4');
+          path.setAttribute('fill', 'none');
+          path.setAttribute('opacity', '0.9');
+          svg.appendChild(path);
+        });
+      }
+
+      function renderGoldenPiece(el, colorKey) {
+        if (!el) return;
+        const piece = goldenSquare[colorKey];
+        if (piece && piece !== '.') {
+          el.innerText = SYMBOLS[piece[1]] || piece[1];
+          el.className = `golden-square-attached ${colorKey === 'black' ? 'golden-black' : 'golden-white'} ${piece[0] === 'w' ? 'piece-white' : 'piece-black'}`;
+        } else {
+          el.innerText = '';
+          el.className = `golden-square-attached ${colorKey === 'black' ? 'golden-black' : 'golden-white'}`;
+        }
+      }
+
+      function renderGraveyard() {
+        const wContainer = document.getElementById('graveyard-white');
+        const bContainer = document.getElementById('graveyard-black');
+        
+        if (wContainer) {
+          wContainer.innerHTML = '';
+          capturedPieces.white.forEach(p => {
+            if (p && p !== '.') {
+              const item = document.createElement('span');
+              item.className = 'graveyard-item piece-white';
+              item.innerText = SYMBOLS[p[1]] || p[1];
+              wContainer.appendChild(item);
+            }
+          });
+        }
+
+        if (bContainer) {
+          bContainer.innerHTML = '';
+          capturedPieces.black.forEach(p => {
+            if (p && p !== '.') {
+              const item = document.createElement('span');
+              item.className = 'graveyard-item piece-black';
+              item.innerText = SYMBOLS[p[1]] || p[1];
+              bContainer.appendChild(item);
+            }
+          });
+        }
+      }
+
+      function onCellClick(r, c) {
+        if (isGameOver) return;
+        if (gameMode === 'pve' && turn === aiColor) return;
+
+        if (normalMoveDoneThisTurn) {
+          showAlert("Info", "You have already made your standard move this turn! Click 'End Turn' to complete your turn.");
+          return;
+        }
+
+        if (selectedCell) {
+          const [sr, sc] = selectedCell;
+          if (sr === r && sc === c) {
+            selectedCell = null;
+            createBoard();
+            return;
+          }
+          if (isLegalMove(sr, sc, r, c, boardState)) {
+            executeMove(sr, sc, r, c);
+            selectedCell = null;
+            return;
+          }
+        }
+        if (boardState[r][c] && boardState[r][c] !== '.' && boardState[r][c][0] === turn[0]) {
+          selectedCell = [r, c];
+          createBoard();
+          highlightCell(r, c);
+        }
+      }
+
+      function highlightCell(r, c) {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => {
+          const cr = parseInt(cell.dataset.row);
+          const cc = parseInt(cell.dataset.col);
+          if (cr === r && cc === c) {
+            cell.classList.add('selected');
+          } else if (isLegalMove(r, c, cr, cc, boardState)) {
+            cell.classList.add('valid-move');
+          }
+        });
+      }
+
+      // Pawn Promotion Choice (EXCLUDING Tank, Pawn, Center/King, and Healer -> Rook, Assassin, Knight)
+      function handlePawnPromotion(r, c, color, onComplete) {
+        const allowedTypes = ['K', 'S', 'G'];
+
+        if (gameMode === 'pve' && turn === aiColor) {
+          const aiPool = ['K', 'K', 'S', 'G'];
+          const chosen = aiPool[Math.floor(Math.random() * aiPool.length)];
+          boardState[r][c] = color + chosen;
+          log(`AI promoted its Pawn to a ${PIECE_NAMES[chosen]}!`);
+          if (onComplete) onComplete();
+          return;
+        }
+
+        const modal = document.getElementById('customModal');
+        document.getElementById('modalTitle').innerText = '🎖️ Pawn Promotion';
+        document.getElementById('modalText').innerText = 'Your Pawn reached the final rank! Which piece would you like to promote it to?';
+        
+        const btns = document.getElementById('modalBtns');
+        btns.innerHTML = '';
+
+        allowedTypes.forEach(t => {
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-modal-ok';
+          btn.innerText = `${SYMBOLS[t]} ${PIECE_NAMES[t]}`;
+          btn.onclick = () => {
+            modal.style.display = 'none';
+            boardState[r][c] = color + t;
+            log(`${color === 'w' ? 'WHITE' : 'BLACK'} Pawn promoted to ${PIECE_NAMES[t]}!`);
+            if (onComplete) onComplete();
+          };
+          btns.appendChild(btn);
+        });
+
+        modal.style.display = 'flex';
+      }
+
+      function executeMove(sr, sc, tr, tc) {
+        const piece = boardState[sr][sc];
+        const target = boardState[tr][tc];
+        const color = piece[0];
+        const colorKey = color === 'w' ? 'white' : 'black';
+
+        normalMoveDoneThisTurn = true;
+
+        if (piece[1] === 'H') healerMoved[colorKey] = true;
+
+        // Special Tank Push / Sideways Shift Move
+        if ((piece[1] === 'P' || piece[1] === 'T') && target === color + 'T') {
+          const pushCols = getTankPushOptions(sr, sc, tr, tc, boardState);
+
+          const finishPush = (chosenCol) => {
+            boardState[tr][chosenCol] = color + 'T';
+            boardState[sr][sc] = '.';
+            log(`${color === 'w' ? 'WHITE' : 'BLACK'} ${PIECE_NAMES[piece[1]]} advanced, shifting the Tank ahead to the ${COL_NAMES[chosenCol]} file.`);
+
+            if (piece[1] === 'P' && (tr === 0 || tr === 7)) {
+              handlePawnPromotion(tr, tc, color, () => {
+                createBoard();
+                checkInsufficientMaterial();
+              });
+            } else {
+              boardState[tr][tc] = piece;
+              createBoard();
+              checkInsufficientMaterial();
+            }
+          };
+
+          if (pushCols.length === 1) {
+            finishPush(pushCols[0]);
+            return;
+          }
+
+          if (gameMode === 'pve' && turn === aiColor) {
+            const chosen = pushCols[Math.floor(Math.random() * pushCols.length)];
+            finishPush(chosen);
+            return;
+          }
+
+          // Ask player if both sideways directions are valid
+          const isWhiteView = (getEffectiveOrientation() === 'white');
+          const visualLeftCol = isWhiteView ? (tc - 1) : (tc + 1);
+          const visualRightCol = isWhiteView ? (tc + 1) : (tc - 1);
+
+          const modal = document.getElementById('customModal');
+          document.getElementById('modalTitle').innerText = '🛡️ Tank Shift Direction';
+          document.getElementById('modalText').innerText = 'The Tank ahead can shift to either side. Which file should it move to?';
+          
+          const btns = document.getElementById('modalBtns');
+          btns.innerHTML = '';
+
+          const leftBtn = document.createElement('button');
+          leftBtn.className = 'btn btn-modal-ok';
+          leftBtn.innerText = `⬅️ Left (${COL_NAMES[visualLeftCol]} File)`;
+          leftBtn.onclick = () => {
+            modal.style.display = 'none';
+            finishPush(visualLeftCol);
+          };
+
+          const rightBtn = document.createElement('button');
+          rightBtn.className = 'btn btn-modal-ok';
+          rightBtn.innerText = `➡️ Right (${COL_NAMES[visualRightCol]} File)`;
+          rightBtn.onclick = () => {
+            modal.style.display = 'none';
+            finishPush(visualRightCol);
+          };
+
+          btns.appendChild(leftBtn);
+          btns.appendChild(rightBtn);
+          modal.style.display = 'flex';
+          return;
+        }
+
+        if (piece[1] === 'S') {
+          const details = getAssassinMoveDetails(sr, sc, tr, tc, boardState);
+          if (details && details.type === 'capture') {
+            log(`${color === 'w' ? 'WHITE' : 'BLACK'} Assassin captured ${details.captured.length} enemy piece(s)!`);
+            
+            const victimPieces = details.captured.map(item => item.piece);
+            details.captured.forEach(item => { boardState[item.r][item.c] = '.'; });
+
+            boardState[tr][tc] = piece;
+            boardState[sr][sc] = '.';
+
+            handleGoldenSquareCapture(victimPieces[0][0] === 'w' ? 'white' : 'black', victimPieces, () => {
+              createBoard();
+              checkInsufficientMaterial();
+            });
+            return;
+          }
+        }
+
+        if (piece[1] === 'H' && target !== '.' && goldenSquare[colorKey]) {
+          handleHealerResurrection(sr, sc, tr, tc, piece, target, colorKey);
+          return;
+        }
+
+        if (target !== '.') {
+          log(`${color === 'w' ? 'WHITE' : 'BLACK'} captured ${PIECE_NAMES[target[1]] || target}.`);
+          boardState[tr][tc] = piece;
+          boardState[sr][sc] = '.';
+
+          handleGoldenSquareCapture(target[0] === 'w' ? 'white' : 'black', [target], () => {
+            if (piece[1] === 'P' && (tr === 0 || tr === 7)) {
+              handlePawnPromotion(tr, tc, color, () => {
+                createBoard();
+                checkInsufficientMaterial();
+              });
+            } else {
+              createBoard();
+              checkInsufficientMaterial();
+            }
+          });
+          return;
+        }
+
+        boardState[sr][sc] = '.';
+
+        if (piece[1] === 'P' && (tr === 0 || tr === 7)) {
+          handlePawnPromotion(tr, tc, color, () => {
+            createBoard();
+            checkInsufficientMaterial();
+          });
+          return;
+        }
+
+        boardState[tr][tc] = piece;
+        createBoard();
+        checkInsufficientMaterial();
+      }
+
+      function handleHealerResurrection(sr, sc, tr, tc, healerPiece, targetPiece, colorKey) {
+        const resPiece = goldenSquare[colorKey];
+
+        if (!resPiece || resPiece === '.') {
+          boardState[tr][tc] = healerPiece;
+          boardState[sr][sc] = '.';
+          log(`${colorKey === 'white' ? 'WHITE' : 'BLACK'} Healer captured ${PIECE_NAMES[targetPiece[1]]}.`);
+          handleGoldenSquareCapture(targetPiece[0] === 'w' ? 'white' : 'black', [targetPiece], () => {
+            createBoard();
+            checkInsufficientMaterial();
+          });
+          return;
+        }
+
+        if (gameMode === 'pve' && turn === aiColor) {
+          boardState[sr][sc] = healerPiece;
+          boardState[tr][tc] = resPiece;
+          goldenSquare[colorKey] = null;
+          log(`${colorKey === 'white' ? 'WHITE' : 'BLACK'} Healer captured ${PIECE_NAMES[targetPiece[1]]} and resurrected ${PIECE_NAMES[resPiece[1]]} from the Golden Square!`);
+          handleGoldenSquareCapture(targetPiece[0] === 'w' ? 'white' : 'black', [targetPiece], () => {
+            createBoard();
+            checkInsufficientMaterial();
+          });
+          return;
+        }
+
+        const modal = document.getElementById('customModal');
+        document.getElementById('modalTitle').innerText = 'Healer Resurrection Choice';
+        document.getElementById('modalText').innerText = `Healer is capturing ${PIECE_NAMES[targetPiece[1]]}. Would you like to resurrect ${PIECE_NAMES[resPiece[1]]} (${SYMBOLS[resPiece[1]] || resPiece}) from the Golden Square onto the board?`;
+        
+        const btns = document.getElementById('modalBtns');
+        btns.innerHTML = '';
+
+        const yesBtn = document.createElement('button');
+        yesBtn.className = 'btn btn-modal-ok';
+        yesBtn.innerText = 'Yes (Resurrect)';
+        yesBtn.onclick = () => {
+          modal.style.display = 'none';
+          log(`${colorKey === 'white' ? 'WHITE' : 'BLACK'} Healer captured ${PIECE_NAMES[targetPiece[1]]} and resurrected ${PIECE_NAMES[resPiece[1]]} from the Golden Square!`);
+          boardState[sr][sc] = healerPiece;
+          boardState[tr][tc] = resPiece;
+          goldenSquare[colorKey] = null;
+          handleGoldenSquareCapture(targetPiece[0] === 'w' ? 'white' : 'black', [targetPiece], () => {
+            createBoard();
+            checkInsufficientMaterial();
+          });
+        };
+
+        const noBtn = document.createElement('button');
+        noBtn.className = 'btn btn-cancel';
+        noBtn.innerText = 'No (Normal Capture)';
+        noBtn.onclick = () => {
+          modal.style.display = 'none';
+          log(`${colorKey === 'white' ? 'WHITE' : 'BLACK'} Healer chose a normal capture.`);
+          boardState[tr][tc] = healerPiece;
+          boardState[sr][sc] = '.';
+          handleGoldenSquareCapture(targetPiece[0] === 'w' ? 'white' : 'black', [targetPiece], () => {
+            createBoard();
+            checkInsufficientMaterial();
+          });
+        };
+
+        btns.appendChild(yesBtn);
+        btns.appendChild(noBtn);
+        modal.style.display = 'flex';
+      }
+
+      function handleGoldenSquareCapture(victimColorKey, capturedArray, onComplete) {
+        if (goldenSquare[victimColorKey]) {
+          capturedArray.forEach(p => { if (p && p !== '.') capturedPieces[victimColorKey].push(p); });
+          log(`${victimColorKey === 'white' ? 'WHITE' : 'BLACK'} Golden Square is occupied, so captured piece(s) were sent to the graveyard.`);
+          if (onComplete) onComplete();
+          return;
+        }
+
+        if (gameMode === 'pve' && victimColorKey === aiColor) {
+          goldenSquare[victimColorKey] = capturedArray[0];
+          for (let i = 1; i < capturedArray.length; i++) {
+            if (capturedArray[i] && capturedArray[i] !== '.') capturedPieces[victimColorKey].push(capturedArray[i]);
+          }
+          log(`${PIECE_NAMES[capturedArray[0][1]]} was placed into the Golden Square by the AI.`);
+          if (onComplete) onComplete();
+          return;
+        }
+
+        const modal = document.getElementById('customModal');
+        document.getElementById('modalTitle').innerText = `${victimColorKey === 'white' ? 'WHITE' : 'BLACK'} Golden Square Choice`;
+        document.getElementById('modalText').innerText = `Which of your captured pieces would you like to store in the Golden Square? (Unselected pieces go to the graveyard)`;
+        
+        const btns = document.getElementById('modalBtns');
+        btns.innerHTML = '';
+
+        capturedArray.forEach(p => {
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-modal-ok';
+          btn.innerText = `${SYMBOLS[p[1]] || p[1]} ${PIECE_NAMES[p[1]]}`;
+          btn.onclick = () => {
+            modal.style.display = 'none';
+            goldenSquare[victimColorKey] = p;
+            capturedArray.forEach(other => {
+              if (other !== p && other && other !== '.') capturedPieces[victimColorKey].push(other);
+            });
+            log(`${PIECE_NAMES[p[1]]} placed in the Golden Square.`);
+            if (onComplete) onComplete();
+          };
+          btns.appendChild(btn);
+        });
+
+        const passBtn = document.createElement('button');
+        passBtn.className = 'btn btn-cancel';
+        passBtn.innerText = 'None (Send to Graveyard)';
+        passBtn.onclick = () => {
+          modal.style.display = 'none';
+          capturedArray.forEach(p => { if (p && p !== '.') capturedPieces[victimColorKey].push(p); });
+          log(`Pieces moved to the graveyard.`);
+          if (onComplete) onComplete();
+        };
+        btns.appendChild(passBtn);
+
+        modal.style.display = 'flex';
+      }
+
+      window.promptUsePortal = function() {
+        if (portalUsedThisTurn || isGameOver) return;
+        if (gameMode === 'pve' && turn === aiColor) return;
+
+        const modal = document.getElementById('customModal');
+        document.getElementById('modalTitle').innerText = '🌀 Portal Transfer';
+        document.getElementById('modalText').innerText = 'Which portal link would you like to activate?';
+        
+        const btns = document.getElementById('modalBtns');
+        btns.innerHTML = '';
+
+        const wBtn = document.createElement('button');
+        wBtn.className = 'btn btn-modal-ok';
+        wBtn.innerText = 'White Portal (D1 ↔ E1)';
+        wBtn.onclick = () => {
+          modal.style.display = 'none';
+          executePortalMove(PORTALS.white);
+        };
+
+        const bBtn = document.createElement('button');
+        bBtn.className = 'btn btn-modal-ok';
+        bBtn.innerText = 'Black Portal (D8 ↔ C8)';
+        bBtn.onclick = () => {
+          modal.style.display = 'none';
+          executePortalMove(PORTALS.black);
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-cancel';
+        cancelBtn.innerText = 'Cancel';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+
+        btns.appendChild(wBtn);
+        btns.appendChild(bBtn);
+        btns.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+      };
+
+      function executePortalMove(portalPair) {
+        const u1 = portalPair[0], u2 = portalPair[1];
+        const p1 = boardState[u1.r][u1.c], p2 = boardState[u2.r][u2.c];
+
+        if ((!p1 || p1 === '.') && (!p2 || p2 === '.')) {
+          showAlert("Warning", "Both endpoints of the selected portal are empty! Transfer cannot be performed.");
+          return;
+        }
+
+        const playerChar = turn[0];
+        const p1Valid = p1 && p1 !== '.' && p1[0] === playerChar;
+        const p2Valid = p2 && p2 !== '.' && p2[0] === playerChar;
+
+        if ((p1 && p1 !== '.' && !p1Valid) || (p2 && p2 !== '.' && !p2Valid)) {
+          showAlert("Invalid Transfer", "To use the portal, any pieces on its endpoints must belong to you. Enemy pieces cannot be transferred.");
+          return;
+        }
+
+        const tempBoard = cloneBoard(boardState);
+        tempBoard[u1.r][u1.c] = p2;
+        tempBoard[u2.r][u2.c] = p1;
+
+        if (isKingInCheck(playerChar, tempBoard)) {
+          showAlert("Check Hazard!", "Your Center cannot remain in check after using a portal!");
+          return;
+        }
+
+        boardState = tempBoard;
+        portalUsedThisTurn = true;
+        log(`${turn === 'white' ? 'WHITE' : 'BLACK'} successfully used the portal transfer.`);
+        createBoard();
+      }
+
+      window.offerDraw = function() {
+        if (isGameOver) return;
+
+        if (gameMode === 'pve') {
+          const P_VALS = { 'K': 10, 'M': 100, 'S': 6, 'T': 5, 'G': 4, 'H': 4, 'P': 2 };
+          let aiScore = 0, userScore = 0;
+
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              const p = boardState[r][c];
+              if (p && p !== '.') {
+                const val = P_VALS[p[1]] || 1;
+                if (p[0] === aiColor[0]) aiScore += val;
+                else userScore += val;
+              }
+            }
+          }
+
+          if (aiScore <= userScore + 3) {
+            log(`The AI accepted your draw offer.`);
+            endGame("Draw by Agreement (AI Accepted)", "draw");
+          } else {
+            showAlert("Draw Declined", "The AI declined your draw offer due to its advantageous position!");
+          }
+        } else {
+          const nextPlayer = turn === 'white' ? 'BLACK' : 'WHITE';
+          const modal = document.getElementById('customModal');
+          document.getElementById('modalTitle').innerText = '🤝 Draw Offer';
+          document.getElementById('modalText').innerText = `${turn === 'white' ? 'WHITE' : 'BLACK'} offers a draw. Does ${nextPlayer} accept?`;
+          
+          const btns = document.getElementById('modalBtns');
+          btns.innerHTML = '';
+
+          const yesBtn = document.createElement('button');
+          yesBtn.className = 'btn btn-modal-ok';
+          yesBtn.innerText = 'Accept (Draw)';
+          yesBtn.onclick = () => {
+            modal.style.display = 'none';
+            endGame("Draw by Agreement", "draw");
+          };
+
+          const noBtn = document.createElement('button');
+          noBtn.className = 'btn btn-cancel';
+          noBtn.innerText = 'Decline (Continue)';
+          noBtn.onclick = () => { modal.style.display = 'none'; };
+
+          btns.appendChild(yesBtn);
+          btns.appendChild(noBtn);
+          modal.style.display = 'flex';
+        }
+      };
+
+      window.finishTurn = function() {
+        if (isGameOver) return;
+
+        if (!normalMoveDoneThisTurn) {
+          showAlert("Warning", "You must make your standard move before ending your turn!");
+          return;
+        }
+
+        passes[turn] = 0;
+        turn = (turn === 'white' ? 'black' : 'white');
+        turnCount++;
+        portalUsedThisTurn = false;
+        normalMoveDoneThisTurn = false;
+
+        document.getElementById('status').innerText = `Turn: ${turn === 'white' ? 'WHITE' : 'BLACK'}`;
+        createBoard();
+
+        const hasMoves = hasAnyLegalMoves(turn[0], boardState);
+        const inCheck = isKingInCheck(turn[0], boardState);
+
+        if (!hasMoves) {
+          if (inCheck) {
+            const winner = turn === 'white' ? 'black' : 'white';
+            endGame(`CHECKMATE! ${winner === 'white' ? 'WHITE' : 'BLACK'} wins the game!`, winner);
+          } else {
+            log(`${turn === 'white' ? 'WHITE' : 'BLACK'} has no legal moves and automatically passes.`);
+            window.passTurn();
+          }
+        } else if (gameMode === 'pve' && turn === aiColor) {
+          setTimeout(runAITurn, 600);
+        }
+      };
+
+      window.passTurn = function() {
+        if (isGameOver) return;
+
+        if (isKingInCheck(turn[0], boardState)) {
+          showAlert("Rule Violation", "You CANNOT PASS while your Center is in check!");
+          return;
+        }
+
+        passes[turn]++;
+        log(`${turn === 'white' ? 'WHITE' : 'BLACK'} PASSED their turn (${passes[turn]}/3).`);
+
+        if (passes[turn] >= 3) {
+          const winner = turn === 'white' ? 'black' : 'white';
+          endGame(`${turn === 'white' ? 'WHITE' : 'BLACK'} lost for passing 3 times in a row!`, winner);
+          return;
+        }
+
+        turn = (turn === 'white' ? 'black' : 'white');
+        turnCount++;
+        portalUsedThisTurn = false;
+        normalMoveDoneThisTurn = false;
+
+        document.getElementById('status').innerText = `Turn: ${turn === 'white' ? 'WHITE' : 'BLACK'}`;
+        createBoard();
+
+        if (gameMode === 'pve' && turn === aiColor) {
+          setTimeout(runAITurn, 600);
+        }
+      };
+
+      function endGame(reason, winnerColor) {
+        isGameOver = true;
+        
+        let titleText = "";
+        let subText = reason;
+
+        if (winnerColor === "draw") {
+          titleText = "🤝 GAME DRAWN!";
+        } else if (gameMode === 'pve') {
+          if (winnerColor === userColor) {
+            titleText = "🎉 CONGRATULATIONS, YOU WON!";
+          } else {
+            titleText = "💀 DEFEAT, YOU LOST!";
+          }
+        } else {
+          if (winnerColor === 'white') {
+            titleText = "👑 WHITE WINS!";
+          } else {
+            titleText = "👑 BLACK WINS!";
+          }
+        }
+
+        document.getElementById('resultTitle').innerText = titleText;
+        document.getElementById('resultSub').innerText = subText;
+        document.getElementById('statMode').innerText = (gameMode === 'pve' ? `vs. AI (Side: ${userColor.toUpperCase()})` : 'Two Players (PvP)');
+        document.getElementById('statReason').innerText = reason;
+        document.getElementById('statTurns').innerText = turnCount;
+        document.getElementById('statWhiteCap').innerText = capturedPieces.white.length;
+        document.getElementById('statBlackCap').innerText = capturedPieces.black.length;
+        document.getElementById('statPasses').innerText = `${passes.white} / ${passes.black}`;
+
+        log(`--- GAME OVER: ${titleText} (${reason}) ---`);
+        document.getElementById('status').innerText = `GAME OVER`;
+        
+        document.getElementById('resultModal').style.display = 'flex';
+        createBoard();
+      }
+
+      function runAITurn() {
+        if (isGameOver || turn !== aiColor) return;
+
+        const aiChar = aiColor[0];
+        const allLegalMoves = [];
+
+        for (let sr = 0; sr < ROWS; sr++) {
+          for (let sc = 0; sc < COLS; sc++) {
+            if (boardState[sr][sc] && boardState[sr][sc] !== '.' && boardState[sr][sc][0] === aiChar) {
+              for (let tr = 0; tr < ROWS; tr++) {
+                for (let tc = 0; tc < COLS; tc++) {
+                  if (isLegalMove(sr, sc, tr, tc, boardState)) {
+                    allLegalMoves.push({ sr, sc, tr, tc, piece: boardState[sr][sc], target: boardState[tr][tc] });
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        if (allLegalMoves.length === 0) {
+          window.passTurn();
+          return;
+        }
+
+        const P_VALS = { 'K': 10, 'M': 100, 'S': 6, 'T': 5, 'G': 4, 'H': 4, 'P': 2 };
+        let bestMove = null;
+        let maxScore = -99999;
+
+        allLegalMoves.forEach(mv => {
+          let score = 0;
+          
+          // 1. Capture reward or friendly Tank shift bonus
+          if (mv.target && mv.target !== '.' && mv.target[0] !== aiChar) {
+            score += (P_VALS[mv.target[1]] || 1) * 12;
+          } else if (mv.target && mv.target === aiChar + 'T') {
+            score += 4;
+          }
+
+          // Pawn promotion incentive
+          if (mv.piece[1] === 'P' && (mv.tr === 0 || mv.tr === 7)) {
+            score += 80;
+          }
+
+          const tempB = cloneBoard(boardState);
+          if ((mv.piece[1] === 'P' || mv.piece[1] === 'T') && mv.target === aiChar + 'T') {
+            const opts = getTankPushOptions(mv.sr, mv.sc, mv.tr, mv.tc, boardState);
+            if (opts.length > 0) tempB[mv.tr][opts[0]] = aiChar + 'T';
+          }
+          tempB[mv.tr][mv.tc] = tempB[mv.sr][mv.sc];
+          tempB[mv.sr][mv.sc] = '.';
+
+          // 2. Exposure to attack penalty
+          if (isSquareAttacked(mv.tr, mv.tc, aiChar, tempB)) {
+            score -= (P_VALS[mv.piece[1]] || 1) * 6;
+          }
+
+          // 3. Advancement incentive
+          score += (aiColor === 'black' ? mv.tr : (7 - mv.tr)) * 1.5;
+
+          // 4. Loop prevention penalty
+          const moveKey = `${mv.sr},${mv.sc}->${mv.tr},${mv.tc}`;
+          const repeatCount = aiLastMoves.filter(k => k === moveKey).length;
+          score -= repeatCount * 15;
+
+          // 5. Small random variation for move diversity
+          score += Math.random() * 2.5;
+
+          if (score > maxScore) {
+            maxScore = score;
+            bestMove = mv;
+          }
+        });
+
+        const selected = bestMove || allLegalMoves[Math.floor(Math.random() * allLegalMoves.length)];
+        
+        aiLastMoves.push(`${selected.sr},${selected.sc}->${selected.tr},${selected.tc}`);
+        if (aiLastMoves.length > 6) aiLastMoves.shift();
+
+        executeMove(selected.sr, selected.sc, selected.tr, selected.tc);
+        
+        setTimeout(() => {
+          if (!isGameOver && turn === aiColor && normalMoveDoneThisTurn) {
+            window.finishTurn();
+          }
+        }, 500);
+      }
+
+      window.openSettingsModal = function() {
+        document.getElementById('resultModal').style.display = 'none';
+        document.getElementById('settingsModal').style.display = 'flex';
+      };
+
+      window.applySettingsAndStart = function() {
+        const modeEl = document.querySelector('input[name="gameMode"]:checked');
+        const colorEl = document.querySelector('input[name="userColor"]:checked');
+
+        gameMode = modeEl ? modeEl.value : 'pvp';
+        userColor = colorEl ? colorEl.value : 'white';
+        aiColor = (userColor === 'white' ? 'black' : 'white');
+
+        document.getElementById('settingsModal').style.display = 'none';
+        resetGame();
+      };
+
+      window.restartCurrentGame = function() {
+        document.getElementById('resultModal').style.display = 'none';
+        resetGame();
+      };
+
+      function resetGame() {
+        boardState = INITIAL_BOARD.map(row => [...row]);
+        turn = 'white';
+        turnCount = 1;
+        selectedCell = null;
+        goldenSquare = { white: null, black: null };
+        capturedPieces = { white: [], black: [] };
+        passes = { white: 0, black: 0 };
+        healerMoved = { white: false, black: false };
+        isGameOver = false;
+        portalUsedThisTurn = false;
+        normalMoveDoneThisTurn = false;
+        aiLastMoves = [];
+
+        log(`--- New Game Started (${gameMode === 'pvp' ? 'Two Players' : 'vs. AI'}, Side: ${userColor.toUpperCase()}) ---`);
+        document.getElementById('status').innerText = `Turn: WHITE`;
+        
+        createBoard();
+
+        if (gameMode === 'pve' && turn === aiColor) {
+          setTimeout(runAITurn, 600);
+        }
+      }
+
+      window.addEventListener('keydown', function(e) {
+        const customModal = document.getElementById('customModal');
+        const settingsModal = document.getElementById('settingsModal');
+        const resultModal = document.getElementById('resultModal');
+
+        if ((customModal && customModal.style.display !== 'none') ||
+            (settingsModal && settingsModal.style.display !== 'none') ||
+            (resultModal && resultModal.style.display !== 'none')) {
+          return;
+        }
+
+        const key = e.key.toLowerCase();
+        if (e.code === 'Space') {
+          e.preventDefault();
+          window.finishTurn();
+        } else if (key === 'b') {
+          window.promptUsePortal();
+        } else if (key === 'p') {
+          window.passTurn();
+        } else if (key === 'r') {
+          window.openSettingsModal();
+        }
+      });
+
+      window.addEventListener('resize', drawPortals);
+
+      window.onload = function() {
+        openSettingsModal();
+      };
+    })();
+  </script>
+</body>
+</html>
