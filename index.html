@@ -203,7 +203,28 @@
     .invite-banner { font-size: 12.5px; color: #2ecc71; background: rgba(39, 174, 96, 0.15); border: 1px solid #27ae60; border-radius: 6px; padding: 7px 10px; margin-bottom: 10px; display: none; }
     .spinner-dots::after { content: '...'; animation: dotsAnim 1.4s infinite; }
     @keyframes dotsAnim { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
-
+.clock-panel {
+      display: none; gap: 12px; justify-content: space-between; align-items: center;
+      width: 100%; max-width: 620px; margin-bottom: 10px;
+    }
+    .clock-box {
+      flex: 1; display: flex; justify-content: space-between; align-items: center;
+      background: var(--bg-panel); border: 2px solid #34495e; border-radius: 8px;
+      padding: 7px 14px; font-weight: bold; transition: all 0.2s ease;
+    }
+    .clock-box.active-clock {
+      border-color: #f1c40f; box-shadow: 0 0 10px rgba(241, 196, 15, 0.35);
+      background: rgba(241, 196, 15, 0.12);
+    }
+    .clock-box.paused-clock {
+      border-color: #3498db; opacity: 0.85;
+    }
+    .clock-box.low-time {
+      border-color: #e74c3c; color: #ff7675; animation: blink 1s infinite;
+    }
+    .clock-side-label { font-size: 13px; color: #bdc3c7; }
+    .clock-time { font-family: monospace; font-size: 20px; letter-spacing: 1px; color: #fff; }
+    .clock-box.low-time .clock-time { color: #ff7675; }
     @media (max-width: 620px) {
       .game-container { padding: 14px 52px; }
       .cell { width: 44px; height: 44px; font-size: 24px; }
@@ -255,7 +276,16 @@
       <div class="graveyard-list" id="graveyard-black"></div>
     </div>
   </div>
-
+<div class="clock-panel" id="clock-panel">
+    <div class="clock-box" id="clock-box-white">
+      <span class="clock-side-label" id="clock-label-white">⚪ WHITE</span>
+      <span class="clock-time" id="clock-time-white">10:00</span>
+    </div>
+    <div class="clock-box" id="clock-box-black">
+      <span class="clock-side-label" id="clock-label-black">⚫ BLACK</span>
+      <span class="clock-time" id="clock-time-black">10:00</span>
+    </div>
+  </div>
   <div class="game-container">
     <div class="main-layout">
       <div class="board-with-left-coords">
@@ -338,7 +368,17 @@
         <div class="stat-row"><span id="lblStatBlackCap">Black Pieces Lost:</span><b id="statBlackCap">0</b></div>
         <div class="stat-row"><span id="lblStatPasses">Passes Used:</span><b id="statPasses">0 / 0</b></div>
       </div>
-
+<div class="option-group" id="timeControlGroup">
+          <label class="group-label" id="lblTimeControl">Time Control:</label>
+          <div class="radio-set">
+            <label><input type="radio" name="timeControl" value="unlimited" checked> <span id="optTimeUnlimited">♾️ Unlimited</span></label>
+            <label><input type="radio" name="timeControl" value="3+0"> <span>⚡ 3m</span></label>
+            <label><input type="radio" name="timeControl" value="3+2"> <span>⚡ 3m + 2s</span></label>
+            <label><input type="radio" name="timeControl" value="10+0"> <span>⏱️ 10m</span></label>
+            <label><input type="radio" name="timeControl" value="10+5"> <span>⏱️ 10m + 5s</span></label>
+            <label><input type="radio" name="timeControl" value="30+0"> <span>🕰️ 30m</span></label>
+          </div>
+        </div>
       <div class="modal-btns">
         <button class="btn btn-modal-ok" id="btnPlayAgain" onclick="window.restartCurrentGame()">🔄 Play Again</button>
         <button class="btn btn-restart" id="btnBackMenu" onclick="window.openSettingsModal()">🏠 Back to Menu</button>
@@ -1973,6 +2013,10 @@
         setTxt('optBlack', t('optBlack'));
         setTxt('btnSettingsRules', t('btnRules'));
         setTxt('btnStartGame', t('btnStartGame'));
+        const cl = CLOCK_LABELS[currentLang] || CLOCK_LABELS['en'];
+        setTxt('lblTimeControl', cl.lbl);
+        setTxt('optTimeUnlimited', cl.unlim);
+        updateClockUI();
         const tl = THEME_LABELS[currentLang] || THEME_LABELS['en'];
         setTxt('lblBoardTheme', tl.theme);
         setTxt('optThemeGreen', tl.green);
@@ -2078,6 +2122,112 @@
       let normalMoveDoneThisTurn = false;
       let aiLastMoves = [];
       let lastCheckAlertPlayed = false;
+      // ==========================================
+      // CHESS CLOCK ENGINE (WITH GOLDEN PAUSE)
+      // ==========================================
+      let timeControl = 'unlimited';
+      let timeBaseMs = 0;
+      let timeIncMs = 0;
+      let timeRemaining = { white: 0, black: 0 };
+      let clockPausedForGolden = false;
+      let clockInterval = null;
+      let lastClockTick = Date.now();
+
+      const CLOCK_LABELS = {
+        'en': { lbl: 'Time Control:', unlim: '♾️ Unlimited', timeout: '{loser} ran out of time! {winner} wins!' },
+        'de': { lbl: 'Bedenkzeit:', unlim: '♾️ Unbegrenzt', timeout: '{loser} hat keine Zeit mehr! {winner} gewinnt!' },
+        'es': { lbl: 'Control de tiempo:', unlim: '♾️ Sin límite', timeout: '¡Se acabó el tiempo de {loser}! ¡Ganan {winner}!' },
+        'fr': { lbl: 'Cadence :', unlim: '♾️ Illimité', timeout: 'Temps écoulé pour {loser} ! {winner} gagne !' },
+        'it': { lbl: 'Controllo tempo:', unlim: '♾️ Illimitato', timeout: 'Tempo scaduto per {loser}! Vince {winner}!' },
+        'pl': { lbl: 'Kontrola czasu:', unlim: '♾️ Bez limitu', timeout: '{loser} przekroczył czas! Wygrywają {winner}!' },
+        'pt-BR': { lbl: 'Controle de tempo:', unlim: '♾️ Ilimitado', timeout: 'Acabou o tempo de {loser}! {winner} venceu!' },
+        'tr': { lbl: 'Süre Kontrolü:', unlim: '♾️ Süresiz', timeout: '{loser} süresi doldu! {winner} kazandı!' },
+        'ru': { lbl: 'Контроль времени:', unlim: '♾️ Без времени', timeout: 'У {loser} закончилось время! Победили {winner}!' },
+        'ar': { lbl: 'التحكم بالوقت:', unlim: '♾️ غير محدود', timeout: 'انتهى وقت {loser}! فاز {winner}!' },
+        'th': { lbl: 'การจับเวลา:', unlim: '♾️ ไม่จำกัดเวลา', timeout: '{loser} หมดเวลา! {winner} ชนะ!' },
+        'ja': { lbl: '持ち時間:', unlim: '♾️ 無制限', timeout: '{loser}の時間切れ！{winner}の勝利！' },
+        'ko': { lbl: '제한 시간:', unlim: '♾️ 무제한', timeout: '{loser} 시간 초과! {winner} 승리!' },
+        'zh-CN': { lbl: '时间控制：', unlim: '♾️ 不限时', timeout: '{loser}超时！{winner}获胜！' },
+        'zh-TW': { lbl: '時間控制：', unlim: '♾️ 不限時', timeout: '{loser}超時！{winner}獲勝！' }
+      };
+
+      function parseTimeControl(tc) {
+        if (!tc || tc === 'unlimited') return { baseMs: 0, incMs: 0 };
+        const parts = tc.split('+');
+        const mins = parseInt(parts[0], 10) || 0;
+        const secs = parseInt(parts[1], 10) || 0;
+        return { baseMs: mins * 60 * 1000, incMs: secs * 1000 };
+      }
+
+      function formatClockMs(ms) {
+        const totalSec = Math.max(0, Math.ceil(ms / 1000));
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+
+      function updateClockUI() {
+        const panel = document.getElementById('clock-panel');
+        if (!panel) return;
+        if (timeControl === 'unlimited') {
+          panel.style.display = 'none';
+          return;
+        }
+        panel.style.display = 'flex';
+        const wLbl = document.getElementById('clock-label-white');
+        const bLbl = document.getElementById('clock-label-black');
+        if (wLbl) wLbl.innerText = `⚪ ${colorName('white')}`;
+        if (bLbl) bLbl.innerText = `⚫ ${colorName('black')}`;
+
+        ['white', 'black'].forEach(side => {
+          const box = document.getElementById(`clock-box-${side}`);
+          const timeEl = document.getElementById(`clock-time-${side}`);
+          if (!box || !timeEl) return;
+          const pausedTag = (clockPausedForGolden && turn === side && !isGameOver) ? ' ⏸️' : '';
+          timeEl.innerText = formatClockMs(timeRemaining[side]) + pausedTag;
+          box.classList.toggle('active-clock', !isGameOver && turn === side && !clockPausedForGolden);
+          box.classList.toggle('paused-clock', !isGameOver && turn === side && clockPausedForGolden);
+          box.classList.toggle('low-time', !isGameOver && timeRemaining[side] > 0 && timeRemaining[side] <= 15000);
+        });
+      }
+
+      function startClockLoop() {
+        stopClockLoop();
+        if (timeControl === 'unlimited') { updateClockUI(); return; }
+        lastClockTick = Date.now();
+        updateClockUI();
+        clockInterval = setInterval(() => {
+          const now = Date.now();
+          const dt = now - lastClockTick;
+          lastClockTick = now;
+
+          if (timeControl === 'unlimited' || isGameOver || clockPausedForGolden) {
+            updateClockUI();
+            return;
+          }
+          if (gameMode === 'online' && (!netConn || !netConn.open)) {
+            updateClockUI();
+            return;
+          }
+
+          timeRemaining[turn] = Math.max(0, timeRemaining[turn] - dt);
+          updateClockUI();
+
+          if (timeRemaining[turn] <= 0) {
+            const loser = turn;
+            const winner = loser === 'white' ? 'black' : 'white';
+            if (gameMode !== 'online' || loser === userColor) {
+              stopClockLoop();
+              endGame('reasonTimeout', { loserKey: loser, winnerKey: winner }, winner);
+              sendNetMessage({ type: 'SYNC_STATE', state: serializeGameState() });
+            }
+          }
+        }, 200);
+      }
+
+      function stopClockLoop() {
+        if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+      }
 
       // ==========================================
       // ONLINE P2P ROOM & QUICK MATCH ENGINE (PeerJS)
@@ -2104,6 +2254,11 @@
           capturedPieces: { white: [...capturedPieces.white], black: [...capturedPieces.black] },
           passes: { white: passes.white, black: passes.black },
           healerMoved: { white: healerMoved.white, black: healerMoved.black },
+          timeControl,
+          timeBaseMs,
+          timeIncMs,
+          timeRemaining: { white: timeRemaining.white, black: timeRemaining.black },
+          clockPausedForGolden,
           portalUsedThisTurn,
           normalMoveDoneThisTurn,
           isGameOver,
@@ -2122,6 +2277,16 @@
         capturedPieces = { white: [...st.capturedPieces.white], black: [...st.capturedPieces.black] };
         passes = { white: st.passes.white, black: st.passes.black };
         healerMoved = { white: st.healerMoved.white, black: st.healerMoved.black };
+        if (st.timeControl !== undefined) {
+          timeControl = st.timeControl;
+          timeBaseMs = st.timeBaseMs || 0;
+          timeIncMs = st.timeIncMs || 0;
+          if (st.timeRemaining) timeRemaining = { white: st.timeRemaining.white, black: st.timeRemaining.black };
+          clockPausedForGolden = !!st.clockPausedForGolden;
+          lastClockTick = Date.now();
+          if (timeControl !== 'unlimited' && !clockInterval && !st.isGameOver) startClockLoop();
+          updateClockUI();
+        }
         portalUsedThisTurn = st.portalUsedThisTurn;
         normalMoveDoneThisTurn = st.normalMoveDoneThisTurn;
         if (st.isGameOver && !isGameOver) {
@@ -2465,6 +2630,9 @@
           lastCheckAlertPlayed = false;
           isGameOver = false;
           applyGameState(msg.state);
+          clockPausedForGolden = false;
+          lastClockTick = Date.now();
+          updateClockUI();
           const modeLabel = `${t('optOnline')} (${currentRoomCode})`;
           log(t('logNewGame', { mode: modeLabel, side: colorName(userColor) }));
           document.getElementById('status').innerText = isGameOver ? t('gameOverStatus') : t('turnLabel', { color: colorName(turn) });
@@ -3247,6 +3415,8 @@
         }
         if (gameMode === 'online' && !isRemotePrompt && victimColorKey !== userColor) {
           waitingForRemoteGolden = true;
+          clockPausedForGolden = true;
+      updateClockUI();
           createBoard();
           sendNetMessage({
             type: 'REQUEST_GOLDEN_CHOICE',
@@ -3269,6 +3439,8 @@
 
         const modal = document.getElementById('customModal');
         document.getElementById('modalTitle').innerText = t('goldenTitle', { color: colorName(victimColorKey) });
+        clockPausedForGolden = true;
+    updateClockUI();
         document.getElementById('modalText').innerText = t('goldenText');
         const btns = document.getElementById('modalBtns'); btns.innerHTML = '';
 
@@ -3277,6 +3449,7 @@
          btn.innerHTML = `${renderPieceHTML(p, 'alp-btn-svg')} <span>${pieceName(p[1])}</span>`;
           btn.onclick = () => {
             modal.style.display = 'none'; goldenSquare[victimColorKey] = p;
+            clockPausedForGolden = false; lastClockTick = Date.now(); updateClockUI();
             capturedArray.forEach(other => { if (other !== p && other && other !== '.') capturedPieces[victimColorKey].push(other); });
             log(t('logGoldenStored', { piece: pieceName(p[1]) }));
             if (onComplete) onComplete();
@@ -3288,6 +3461,7 @@
         passBtn.onclick = () => {
           modal.style.display = 'none';
           capturedArray.forEach(p => { if (p && p !== '.') capturedPieces[victimColorKey].push(p); });
+          clockPausedForGolden = false; lastClockTick = Date.now(); updateClockUI();
           log(t('logGraveyard'));
           if (onComplete) onComplete();
         };
@@ -3393,7 +3567,9 @@
         if (!normalMoveDoneThisTurn) { showAlert(t('warnTitle'), t('mustMoveFirst')); return; }
 
         passes[turn] = 0;
+        if (timeControl !== 'unlimited' && timeIncMs > 0) timeRemaining[turn] += timeIncMs;
         turn = (turn === 'white' ? 'black' : 'white');
+        lastClockTick = Date.now();
         turnCount++; portalUsedThisTurn = false; normalMoveDoneThisTurn = false;
         document.getElementById('status').innerText = t('turnLabel', { color: colorName(turn) });
         createBoard();
@@ -3428,6 +3604,7 @@
           sendNetMessage({ type: 'SYNC_STATE', state: serializeGameState() });
           return;
         }
+        if (timeControl !== 'unlimited' && timeIncMs > 0 && !isAutoPass) timeRemaining[turn] += timeIncMs;
         turn = (turn === 'white' ? 'black' : 'white');
         turnCount++; portalUsedThisTurn = false; normalMoveDoneThisTurn = false;
         document.getElementById('status').innerText = t('turnLabel', { color: colorName(turn) });
@@ -3446,7 +3623,11 @@
         if (resolvedVars.winnerKey) resolvedVars.winner = colorName(resolvedVars.winnerKey);
         if (resolvedVars.loserKey) resolvedVars.loser = colorName(resolvedVars.loserKey);
 
-        const reasonText = t(lastEndReasonKey, resolvedVars);
+        let reasonText = t(lastEndReasonKey, resolvedVars);
+        if (lastEndReasonKey === 'reasonTimeout') {
+          const cl = CLOCK_LABELS[currentLang] || CLOCK_LABELS['en'];
+          reasonText = cl.timeout.replace('{loser}', resolvedVars.loser || '').replace('{winner}', resolvedVars.winner || '');
+        }
         const modeText = gameMode === 'pve'
           ? t('statModeAi', { diff: difficultyName(aiDifficulty), side: colorName(userColor) })
           : (gameMode === 'online'
@@ -3466,6 +3647,9 @@
 
       function endGame(reasonKey, reasonVars, winnerColor, fromRemote = false) {
         isGameOver = true; lastEndReasonKey = reasonKey; lastEndReasonVars = reasonVars || {}; lastWinnerColor = winnerColor;
+        stopClockLoop();
+        clockPausedForGolden = false;
+        updateClockUI();
         if (winnerColor === 'draw') SoundFX.draw();
         else if (gameMode === 'pve' || gameMode === 'online') { if (winnerColor === userColor) SoundFX.win(); else SoundFX.lose(); }
         else SoundFX.win();
@@ -3686,6 +3870,8 @@
         const modeEl = document.querySelector('input[name="gameMode"]:checked');
         const diffEl = document.querySelector('input[name="aiDifficulty"]:checked');
         const colorEl = document.querySelector('input[name="userColor"]:checked');
+        const timeEl = document.querySelector('input[name="timeControl"]:checked');
+        timeControl = timeEl ? timeEl.value : 'unlimited';
         gameMode = modeEl ? modeEl.value : 'pvp';
         aiDifficulty = diffEl ? diffEl.value : 'medium';
         userColor = colorEl ? colorEl.value : 'white';
@@ -3744,6 +3930,12 @@
         isGameOver = false; lastEndReasonKey = null; lastEndReasonVars = {}; lastWinnerColor = null;
         portalUsedThisTurn = false; normalMoveDoneThisTurn = false; aiLastMoves = []; lastCheckAlertPlayed = false;
         waitingForRemoteGolden = false;
+        const parsedTime = parseTimeControl(timeControl);
+        timeBaseMs = parsedTime.baseMs;
+        timeIncMs = parsedTime.incMs;
+        timeRemaining = { white: timeBaseMs, black: timeBaseMs };
+        clockPausedForGolden = false;
+        startClockLoop();
 
         const modeLabel = gameMode === 'pve'
           ? `${t('optPve')} (${difficultyName(aiDifficulty)})`
