@@ -143,6 +143,46 @@
     .piece-white { color: #ffffff !important; text-shadow: 0 0 4px #000, 0 0 2px #000; }
     .piece-black { color: #111111 !important; text-shadow: 0 0 4px #fff, 0 0 2px #fff; }
 
+    .emoji-bar {
+      display: none; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 10px; padding: 6px 12px; background: var(--bg-panel);
+      border: 1px solid #34495e; border-radius: 24px; max-width: 620px; width: 100%;
+    }
+    .btn-emoji {
+      background: #2c3e50; border: 1px solid #455a64; border-radius: 50%;
+      width: 36px; height: 36px; font-size: 18px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-emoji:hover:not(:disabled) { transform: scale(1.18); border-color: #f1c40f; background: #34495e; }
+    .btn-emoji:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .reaction-toast {
+      position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+      background: rgba(26, 37, 47, 0.95); border: 2px solid #f1c40f;
+      color: #fff; padding: 8px 18px; border-radius: 30px; font-size: 20px; font-weight: bold;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5); z-index: 1500; pointer-events: none;
+      animation: popFloat 2.2s ease forwards;
+    }
+    @keyframes popFloat {
+      0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); }
+      15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+      80% { opacity: 1; transform: translate(-50%, -6px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -18px) scale(0.95); }
+    }
+
+    .piece-tooltip {
+      position: fixed; display: none; z-index: 1600; max-width: 270px;
+      background: rgba(20, 28, 38, 0.97); border: 1.5px solid #f1c40f;
+      border-radius: 8px; padding: 10px 12px; color: #ecf0f1;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.65); pointer-events: none;
+      font-size: 12.5px; line-height: 1.4;
+    }
+    .piece-tooltip-header {
+      display: flex; align-items: center; gap: 7px; font-weight: bold;
+      color: #f1c40f; font-size: 13.5px; margin-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 4px;
+    }
     .logs { margin-top: 10px; width: 100%; max-width: 620px; height: 95px; background: #1a252f; border-radius: 8px; padding: 8px; overflow-y: auto; font-size: 12px; font-family: monospace; line-height: 1.45; border: 1px solid #455a64; }
 
     .modal-overlay {
@@ -303,8 +343,20 @@
     </div>
   </div>
 
+  <div class="emoji-bar" id="emoji-bar">
+    <button class="btn-emoji" type="button" onclick="window.sendEmojiReaction('👋')">👋</button>
+    <button class="btn-emoji" type="button" onclick="window.sendEmojiReaction('👏')">👏</button>
+    <button class="btn-emoji" type="button" onclick="window.sendEmojiReaction('🤔')">🤔</button>
+    <button class="btn-emoji" type="button" onclick="window.sendEmojiReaction('😱')">😱</button>
+    <button class="btn-emoji" type="button" onclick="window.sendEmojiReaction('🔥')">🔥</button>
+    <button class="btn-emoji" type="button" onclick="window.sendEmojiReaction('😅')">😅</button>
+  </div>
   <div class="logs" id="logs"></div>
 
+  <div class="piece-tooltip" id="piece-tooltip">
+    <div class="piece-tooltip-header" id="piece-tooltip-title"></div>
+    <div id="piece-tooltip-desc"></div>
+  </div>
   <!-- 1. Startup Language Selection Modal -->
   <div class="modal-overlay" id="languageModal">
     <div class="modal-box">
@@ -2656,6 +2708,7 @@
           createBoard();
           handleGoldenSquareCapture(msg.victimColorKey, msg.capturedArray, () => {
             createBoard();
+            triggerTabAlertIfHidden();
             checkInsufficientMaterial();
             sendNetMessage({
               type: 'GOLDEN_CHOICE_DONE',
@@ -2689,6 +2742,12 @@
             sendNetMessage({ type: 'DRAW_DECLINED' });
           };
           btns.appendChild(yesBtn); btns.appendChild(noBtn); modal.style.display = 'flex';
+          triggerTabAlertIfHidden();
+          return;
+        }
+        if (msg.type === 'EMOJI_REACTION') {
+          playTone(580, 780, 0.09, 'sine', 0.13);
+          showFloatingReaction(msg.emoji, msg.fromColor || aiColor);
           return;
         }
         if (msg.type === 'DRAW_DECLINED') {
@@ -2698,6 +2757,251 @@
         }
       }
 
+      // ==========================================
+      // TAB ALERT, EMOJI REACTIONS & PIECE TOOLTIP
+      // ==========================================
+      let tabBlinkInterval = null;
+      let emojiCooldown = false;
+
+      const TAB_ALERT_LABELS = {
+        'en': '🔴 Your Turn!',
+        'de': '🔴 Du bist dran!',
+        'es': '🔴 ¡Tu turno!',
+        'fr': '🔴 À vous de jouer !',
+        'it': '🔴 Tocca a te!',
+        'pl': '🔴 Twój ruch!',
+        'pt-BR': '🔴 Sua vez!',
+        'tr': '🔴 Sıra Sende!',
+        'ru': '🔴 Ваш ход!',
+        'ar': '🔴 دورك الآن!',
+        'th': '🔴 ตาคุณเดินแล้ว!',
+        'ja': '🔴 あなたの手番！',
+        'ko': '🔴 당신의 차례!',
+        'zh-CN': '🔴 轮到你了！',
+        'zh-TW': '🔴 輪到你了！'
+      };
+
+      const PIECE_TOOLTIPS = {
+        'en': {
+          M: 'Moves 1 square in any direction. Must be protected from checkmate.',
+          K: 'Slides orthogonally any distance in your half, and up to 3 squares in enemy territory.',
+          G: 'Jumps in a standard L-shape (2+1) over other pieces.',
+          S: 'Moves 1–2 orthogonally or any distance diagonally; captures by jumping over consecutive enemies onto the empty square behind.',
+          T: 'Moves 1–2 forward, 1 back, or 1 sideways. A friendly Soldier or Tank advancing into its square shifts it sideways.',
+          H: 'Moves 1 square any direction (2-square jump on first move). Can resurrect your Golden Square piece when capturing.',
+          P: 'Moves 1 forward (2 on first move), captures diagonally forward, and promotes on the final rank.'
+        },
+        'de': {
+          M: 'Zieht 1 Feld in jede Richtung. Darf nicht schachmatt gesetzt werden.',
+          K: 'Zieht orthogonal beliebig weit in der eigenen Hälfte und bis zu 3 Felder im Gegnergebiet.',
+          G: 'Springt im klassischen L-Sprung (2+1) über andere Figuren.',
+          S: 'Zieht 1–2 orthogonal oder beliebig diagonal; schlägt durch Überspringen von Gegnern auf das freie Feld dahinter.',
+          T: 'Zieht 1–2 vor, 1 zurück oder 1 seitlich. Ein vorrückender eigener Soldat oder Panzer schiebt ihn zur Seite.',
+          H: 'Zieht 1 Feld beliebig (im 1. Zug 2 Felder Sprung). Kann beim Schlagen die Figur vom Goldenen Feld wiederbeleben.',
+          P: 'Zieht 1 vorwärts (2 beim Start), schlägt diagonal vorwärts und verwandelt sich auf der letzten Reihe.'
+        },
+        'es': {
+          M: 'Mueve 1 casilla en cualquier dirección. Debe evitar el jaque mate.',
+          K: 'Desliza ortogonalmente sin límite en tu mitad y hasta 3 casillas en territorio rival.',
+          G: 'Salta en forma de L (2+1) sobre otras piezas.',
+          S: 'Mueve 1–2 ortogonal o cualquier distancia diagonal; captura saltando enemigos seguidos hasta la casilla vacía detrás.',
+          T: 'Mueve 1–2 adelante, 1 atrás o 1 lateral. Un Soldado o Tanque aliado que avanza a su casilla lo desplaza.',
+          H: 'Mueve 1 casilla en cualquier dirección (salta 2 en su 1er turno). Puede revivir tu pieza de la Casilla Dorada al capturar.',
+          P: 'Avanza 1 (2 al inicio), captura en diagonal hacia adelante y corona en la última fila.'
+        },
+        'fr': {
+          M: 'Se déplace de 1 case dans toutes les directions. Doit éviter le mat.',
+          K: 'Glisse orthogonalement sans limite dans votre moitié et jusqu’à 3 cases en camp adverse.',
+          G: 'Saute en L (2+1) par-dessus les autres pièces.',
+          S: '1–2 orthogonal ou toute distance en diagonale ; capture en sautant par-dessus des ennemis alignés.',
+          T: '1–2 avant, 1 arrière ou 1 côté. Un Soldat ou Char allié avançant sur sa case le décale latéralement.',
+          H: '1 case partout (saut de 2 au 1er coup). Peut ressusciter la pièce de votre Case Dorée lors d’une capture.',
+          P: 'Avance de 1 (2 au départ), capture en diagonale avant et se promeut sur la dernière rangée.'
+        },
+        'it': {
+          M: 'Muove di 1 casella in ogni direzione. Va protetto dallo scacco matto.',
+          K: 'Scorre ortogonalmente senza limiti nella tua metà e fino a 3 caselle in territorio nemico.',
+          G: 'Salta a L (2+1) sopra gli altri pezzi.',
+          S: '1–2 ortogonale o qualsiasi distanza in diagonale; cattura saltando pezzi nemici consecutivi.',
+          T: '1–2 avanti, 1 indietro o 1 lato. Un Soldato o Carro alleato che avanza sulla sua casella lo sposta.',
+          H: '1 casella ovunque (salto di 2 alla 1ª mossa). Può resuscitare il pezzo dalla Casella Dorata catturando.',
+          P: 'Avanza di 1 (2 all’inizio), cattura in diagonale avanti e promuove sull’ultima traversa.'
+        },
+        'pl': {
+          M: 'Porusza się o 1 pole w dowolnym kierunku. Chroń przed matem.',
+          K: 'Porusza się ortogonalnie bez limitu na własnej połowie i do 3 pól na połowie wroga.',
+          G: 'Skacze w kształcie litery L (2+1) nad innymi figurami.',
+          S: '1–2 ortogonalnie lub dowolnie po skosie; bije przeskakując wrogów na wolne pole za nimi.',
+          T: '1–2 do przodu, 1 do tyłu lub 1 w bok. Sojuszniczy Żołnierz lub Czołg przesuwa go w bok.',
+          H: '1 pole w każdą stronę (skok o 2 w 1. ruchu). Przy biciu może wskrzesić figurę ze Złotego Pola.',
+          P: '1 pole do przodu (2 na starcie), bije na skos i promuje na ostatnim rzędzie.'
+        },
+        'pt-BR': {
+          M: 'Move 1 casa em qualquer direção. Deve ser protegido do xeque-mate.',
+          K: 'Desliza ortogonalmente sem limite no seu campo e até 3 casas no campo inimigo.',
+          G: 'Salta em L (2+1) sobre outras peças.',
+          S: '1–2 ortogonal ou diagonal livre; captura saltando inimigos seguidos até a casa vazia atrás.',
+          T: '1–2 frente, 1 trás ou 1 lado. Um Soldado ou Tanque aliado avançando em sua casa o empurra.',
+          H: '1 casa em qualquer direção (salta 2 no 1º lance). Pode ressuscitar sua peça da Casa Dourada ao capturar.',
+          P: 'Avança 1 (2 no início), captura na diagonal frontal e promove na última fileira.'
+        },
+        'tr': {
+          M: 'Her yöne 1 kare gider. Şah-mat edilmekten korunmalıdır.',
+          K: 'Kendi yarı sahanızda sınırsız, rakip yarı sahada ise en fazla 3 kare dikey/yatay ilerler.',
+          G: 'Diğer taşların üzerinden klasik L şeklinde (2+1) zıplar.',
+          S: 'Dikey/yatay 1–2, çapraz sınırsız gider; art arda dizili rakip taşların üzerinden atlayıp arkalarındaki boş kareye inerek hepsini yer.',
+          T: '1–2 ileri, 1 geri veya 1 yana gider. Arkasından karesine ilerleyen dost Asker veya Tank onu yan sütuna kaydırır.',
+          H: 'Her yöne 1 kare gider (ilk hamlesinde 2 kare atlayabilir). Taş yediğinde Altın Kare’deki taşınızı diriltebilir.',
+          P: '1 kare ileri gider (başlangıçta 2), çapraz ileri yer ve son sırada terfi eder.'
+        },
+        'ru': {
+          M: 'Ходит на 1 клетку в любом направлении. Защищайте от мата.',
+          K: 'Ходит по прямым без ограничений на своей половине и до 3 клеток на половине соперника.',
+          G: 'Прыгает буквой «Г» (2+1) через другие фигуры.',
+          S: '1–2 по прямой или свободно по диагонали; бьёт перепрыгивая через врагов на пустое поле за ними.',
+          T: '1–2 вперёд, 1 назад или 1 вбок. Союзный Солдат или Танк сдвигает его вбок.',
+          H: '1 клетка вокруг (прыжок на 2 первым ходом). При взятии может воскресить фигуру с Золотого поля.',
+          P: '1 вперёд (2 с начала), бьёт по диагонали вперёд и превращается на последней линии.'
+        },
+        'ar': {
+          M: 'يتحرك مربعاً واحداً في أي اتجاه. يجب حمايته من كش مات.',
+          K: 'يتحرك أفقياً وعمودياً بلا حدود في نصفك، وحتى 3 مربعات في أرض الخصم.',
+          G: 'يقفز على شكل حرف L (2+1) فوق القطع.',
+          S: '1–2 أفقياً/عمودياً أو بلا حدود قطرياً؛ يأسر بالقفز فوق قطع الخصم إلى المربع الفارغ خلفها.',
+          T: '1–2 للأمام، 1 للخلف أو 1 جانبياً. تقدم جندي أو دبابة صديقة لمربعها يزيحها جانبياً.',
+          H: 'مربع واحد بأي اتجاه (يقفز مربعين بأول نقلة). يحيي قطعة المربع الذهبي عند الأسر.',
+          P: 'يتقدم مربعاً (2 في البداية)، يأسر قطرياً للأمام ويترقى في الصف الأخير.'
+        },
+        'th': {
+          M: 'เดินได้ 1 ช่องทุกทิศทาง ต้องป้องกันไม่ให้ถูกรุกจน',
+          K: 'เดินแนวตรงไม่จำกัดในแดนตัวเอง และสูงสุด 3 ช่องในแดนศัตรู',
+          G: 'กระโดดรูปตัว L (2+1) ข้ามหมากอื่นได้',
+          S: 'แนวตรง 1–2 ช่อง หรือทแยงไม่จำกัด กินโดยกระโดดข้ามหมากศัตรูที่เรียงกันไปลงช่องว่างด้านหลัง',
+          T: 'เดินหน้า 1–2 ถอยหลัง 1 หรือออกข้าง 1 หากทหารหรือรถถังฝ่ายเดียวกันเดินมาชนจะดันหลบด้านข้าง',
+          H: 'เดิน 1 ช่องรอบตัว (ตาแรกกระโดด 2 ช่องได้) เมื่อกินหมากสามารถชุบชีวิตหมากในช่องทองคำได้',
+          P: 'เดินหน้า 1 (ตาแรกได้ 2) กินเฉียงหน้า และเลื่อนขั้นเมื่อถึงแถวสุดท้าย'
+        },
+        'ja': {
+          M: '全方向に1マス移動。詰まされないよう守ります。',
+          K: '自陣では縦横無制限、敵陣では最大3マスまで直進できます。',
+          G: '他の駒を飛び越えてL字（2+1）に跳びます。',
+          S: '縦横1〜2マス、斜め無制限。並んだ敵駒を飛び越え直後の空きマスに着地してまとめて捕獲します。',
+          T: '前1〜2、後1、横1マス移動。味方のソルジャーやタンクが進むと横の空き列へ押し出されます。',
+          H: '全方向1マス（初手のみ2マス跳躍可）。捕獲時に黄金マスの味方駒を蘇生できます。',
+          P: '前1マス（初手2マス）、斜め前捕獲。最終列で昇格します。'
+        },
+        'ko': {
+          M: '모든 방향으로 1칸 이동합니다. 체크메이트로부터 보호해야 합니다.',
+          K: '아군 진영에서는 상하좌우 무제한, 적 진영에서는 최대 3칸까지 이동합니다.',
+          G: '다른 기물을 뛰어넘어 L자(2+1)로 점프합니다.',
+          S: '상하좌우 1~2칸, 대각선 무제한. 일렬의 적 기물을 뛰어넘어 뒤 빈 칸에 착지하며 모두 포획합니다.',
+          T: '전진 1~2, 후진 1, 좌우 1칸 이동. 아군 병사나 탱크가 진입하면 옆 빈 열로 밀려납니다.',
+          H: '전 방향 1칸(첫 수만 2칸 점프 가능). 포획 시 황금 칸의 기물을 부활시킬 수 있습니다.',
+          P: '전진 1칸(첫 수 2칸), 대각선 앞 포획, 마지막 줄에서 승급합니다.'
+        },
+        'zh-CN': {
+          M: '向任意方向移动 1 格，需避免被将死。',
+          K: '在己方半场横竖不限格数，进入敌方半场最多走 3 格。',
+          G: '以标准日字跳步（2+1）越过其他棋子。',
+          S: '横竖 1–2 格，斜向不限；可跳过连续敌子落至其后空位并全部吃掉。',
+          T: '前进 1–2、后退 1 或左右 1 格；己方士兵或坦克进入其格时将其推向旁侧空列。',
+          H: '任意方向 1 格（首步可跳 2 格）；吃子时可复活黄金格中的己方棋子。',
+          P: '前进 1 格（首步可 2 格），斜前吃子，到达底线可升变。'
+        },
+        'zh-TW': {
+          M: '向任意方向移動 1 格，需避免被將死。',
+          K: '在己方半場橫豎不限格數，進入敵方半場最多走 3 格。',
+          G: '以標準日字跳步（2+1）越過其他棋子。',
+          S: '橫豎 1–2 格，斜向不限；可跳過連續敵子落至其後空位並全部吃掉。',
+          T: '前進 1–2、後退 1 或左右 1 格；己方士兵或坦克進入其格時將其推向旁側空列。',
+          H: '任意方向 1 格（首步可跳 2 格）；吃子時可復活黃金格中的己方棋子。',
+          P: '前進 1 格（首步可 2 格），斜前吃子，到達底線可升變。'
+        }
+      };
+
+      function triggerTabAlertIfHidden() {
+        if (!document.hidden || tabBlinkInterval || isGameOver) return;
+        let showAlertTitle = true;
+        const alertPrefix = TAB_ALERT_LABELS[currentLang] || TAB_ALERT_LABELS['en'];
+        document.title = `${alertPrefix} - ${t('title')}`;
+        tabBlinkInterval = setInterval(() => {
+          if (!document.hidden || isGameOver) {
+            stopTabAlert();
+            return;
+          }
+          showAlertTitle = !showAlertTitle;
+          document.title = showAlertTitle ? `${alertPrefix} - ${t('title')}` : t('title');
+        }, 1000);
+      }
+
+      function stopTabAlert() {
+        if (tabBlinkInterval) {
+          clearInterval(tabBlinkInterval);
+          tabBlinkInterval = null;
+        }
+        document.title = t('title');
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) stopTabAlert();
+      });
+
+      function showFloatingReaction(emoji, sideColor) {
+        const existing = document.querySelector('.reaction-toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = 'reaction-toast';
+        const badge = sideColor === 'white' ? '⚪' : '⚫';
+        toast.innerText = `${badge} ${emoji}`;
+        document.body.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 2250);
+      }
+
+      window.sendEmojiReaction = function(emoji) {
+        if (gameMode !== 'online' || !netConn || !netConn.open || emojiCooldown) return;
+        getAudioContext();
+        playTone(660, 880, 0.08, 'sine', 0.12);
+        showFloatingReaction(emoji, userColor);
+        sendNetMessage({ type: 'EMOJI_REACTION', emoji, fromColor: userColor });
+
+        emojiCooldown = true;
+        document.querySelectorAll('.btn-emoji').forEach(b => b.disabled = true);
+        setTimeout(() => {
+          emojiCooldown = false;
+          document.querySelectorAll('.btn-emoji').forEach(b => b.disabled = false);
+        }, 1500);
+      };
+
+      function showPieceTooltip(e, pieceCode) {
+        const tip = document.getElementById('piece-tooltip');
+        if (!tip) return;
+        if (!pieceCode || pieceCode === '.') {
+          tip.style.display = 'none';
+          return;
+        }
+        const type = pieceCode[1];
+        const sideLabel = colorName(pieceCode[0] === 'w' ? 'white' : 'black');
+        const descDict = PIECE_TOOLTIPS[currentLang] || PIECE_TOOLTIPS['en'];
+        document.getElementById('piece-tooltip-title').innerHTML = `${renderPieceHTML(pieceCode, 'alp-gy-svg')} <span>${pieceName(type)} (${sideLabel})</span>`;
+        document.getElementById('piece-tooltip-desc').innerText = descDict[type] || '';
+
+        tip.style.display = 'block';
+        const pad = 12;
+        const rect = tip.getBoundingClientRect();
+        let left = e.clientX + 14;
+        let top = e.clientY + 14;
+        if (left + rect.width + pad > window.innerWidth) left = Math.max(pad, e.clientX - rect.width - 14);
+        if (top + rect.height + pad > window.innerHeight) top = Math.max(pad, e.clientY - rect.height - 14);
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
+      }
+
+      function hidePieceTooltip() {
+        const tip = document.getElementById('piece-tooltip');
+        if (tip) tip.style.display = 'none';
+      }
+
+      document.addEventListener('click', hidePieceTooltip);
       const PORTALS = {
         white: [{ r: 7, c: 3 }, { r: 7, c: 4 }],
         black: [{ r: 0, c: 3 }, { r: 0, c: 2 }]
@@ -3095,6 +3399,7 @@
               cellEl.className += (piece[0] === 'w' ? ' piece-white' : ' piece-black');
             }
             cellEl.addEventListener('click', () => onCellClick(r, c));
+            cellEl.addEventListener('contextmenu', (e) => { e.preventDefault(); showPieceTooltip(e, piece); });
             rowEl.appendChild(cellEl);
           });
           boardEl.appendChild(rowEl);
@@ -3145,6 +3450,10 @@
           }
         }
 
+        const emojiBar = document.getElementById('emoji-bar');
+        if (emojiBar) {
+          emojiBar.style.display = (gameMode === 'online' && !isGameOver && netConn && netConn.open) ? 'flex' : 'none';
+        }
         setTimeout(drawPortals, 20);
       }
 
@@ -3179,6 +3488,7 @@
       function renderGoldenPiece(el, colorKey) {
         if (!el) return;
         const piece = goldenSquare[colorKey];
+        el.oncontextmenu = (e) => { e.preventDefault(); showPieceTooltip(e, piece); };
         if (piece && piece !== '.') {
           el.innerHTML = renderPieceHTML(piece);
           el.className = `golden-square-attached ${colorKey === 'black' ? 'golden-black' : 'golden-white'} ${piece[0] === 'w' ? 'piece-white' : 'piece-black'}`;
@@ -3609,6 +3919,7 @@
         turnCount++; portalUsedThisTurn = false; normalMoveDoneThisTurn = false;
         document.getElementById('status').innerText = t('turnLabel', { color: colorName(turn) });
         createBoard();
+        if (turn === userColor && !isGameOver) triggerTabAlertIfHidden();
         sendNetMessage({ type: 'SYNC_STATE', state: serializeGameState(), sound: 'pass', logText: passLog });
         if (gameMode === 'pve' && turn === aiColor) setTimeout(runAITurn, 550);
       };
@@ -3947,6 +4258,7 @@
       }
 
       window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') hidePieceTooltip();
         const langModal = document.getElementById('languageModal');
         const guideModal = document.getElementById('guideModal');
         const customModal = document.getElementById('customModal');
